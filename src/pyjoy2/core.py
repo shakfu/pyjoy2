@@ -3,18 +3,19 @@ pyjoy2.core - Core stack and word infrastructure.
 
 A practical, Pythonic concatenative language.
 """
+
 from __future__ import annotations
-from typing import Callable, Any, Dict, List, Tuple, Union
+from typing import Callable, Any, cast
 from functools import wraps
 import inspect
 
-__all__ = ['Stack', 'WORDS', 'word', 'define', 'execute', 'Word']
+__all__ = ["Stack", "WORDS", "word", "define", "execute", "Word"]
 
 # Type alias for Joy words
-Word = Callable[['Stack'], Any]
+Word = Callable[["Stack"], Any]
 
 # Global word registry
-WORDS: Dict[str, Word] = {}
+WORDS: dict[str, Word] = {}
 
 
 class Stack(list):
@@ -25,12 +26,12 @@ class Stack(list):
     Any Python object can be pushed onto the stack.
     """
 
-    def push(self, *items: Any) -> 'Stack':
+    def push(self, *items: Any) -> "Stack":
         """Push one or more items onto the stack."""
         self.extend(items)
         return self
 
-    def pop(self, n: int = 1) -> Any:
+    def pop(self, n: int = 1) -> Any:  # type: ignore[override]
         """
         Pop n items from the stack.
         Returns single item if n=1, else tuple of items (top first).
@@ -53,35 +54,35 @@ class Stack(list):
             raise IndexError(f"Stack underflow: depth {depth}, size {len(self)}")
         return self[-(depth + 1)]
 
-    def dup(self) -> 'Stack':
+    def dup(self) -> "Stack":
         """Duplicate top of stack."""
         if not self:
             raise IndexError("Stack underflow: dup on empty stack")
         self.append(self[-1])
         return self
 
-    def swap(self) -> 'Stack':
+    def swap(self) -> "Stack":
         """Swap top two items."""
         if len(self) < 2:
             raise IndexError("Stack underflow: swap needs 2 items")
         self[-1], self[-2] = self[-2], self[-1]
         return self
 
-    def over(self) -> 'Stack':
+    def over(self) -> "Stack":
         """Copy second item to top."""
         if len(self) < 2:
             raise IndexError("Stack underflow: over needs 2 items")
         self.append(self[-2])
         return self
 
-    def rot(self) -> 'Stack':
+    def rot(self) -> "Stack":
         """Rotate top three: a b c -> b c a"""
         if len(self) < 3:
             raise IndexError("Stack underflow: rot needs 3 items")
         self[-3], self[-2], self[-1] = self[-2], self[-1], self[-3]
         return self
 
-    def drop(self, n: int = 1) -> 'Stack':
+    def drop(self, n: int = 1) -> "Stack":
         """Drop top n items."""
         for _ in range(n):
             self.pop()
@@ -95,7 +96,7 @@ class Stack(list):
         return f"Stack({list(self)})"
 
 
-def word(f: Callable) -> Word:
+def word(f: Callable[..., Any]) -> Word:
     """
     Decorator that turns a regular function into a stack word.
 
@@ -112,13 +113,14 @@ def word(f: Callable) -> Word:
     """
     sig = inspect.signature(f)
     n_params = len(sig.parameters)
+    func_name = cast(str, getattr(f, "__name__", "<unknown>"))
 
     @wraps(f)
     def wrapper(stack: Stack) -> None:
         if n_params > 0:
             if len(stack) < n_params:
                 raise IndexError(
-                    f"{f.__name__}: needs {n_params} args, stack has {len(stack)}"
+                    f"{func_name}: needs {n_params} args, stack has {len(stack)}"
                 )
             # Pop args (they come off in reverse order)
             args = stack.pop(n_params)
@@ -132,25 +134,23 @@ def word(f: Callable) -> Word:
         result = f(*args)
 
         if result is not None:
-            if isinstance(result, tuple) and hasattr(f, '_push_tuple'):
+            if isinstance(result, tuple) and getattr(wrapper, "_push_tuple", False):
                 # Push each element of tuple
                 for item in result:
                     stack.push(item)
             else:
                 stack.push(result)
 
-    wrapper.__name__ = f.__name__
-    wrapper.__doc__ = f.__doc__
-    wrapper._is_word = True
-    wrapper._n_params = n_params
+    wrapper._is_word = True  # type: ignore[attr-defined]
+    wrapper._n_params = n_params  # type: ignore[attr-defined]
 
     # Auto-register with function name
-    WORDS[f.__name__] = wrapper
+    WORDS[func_name] = wrapper
 
     return wrapper
 
 
-def define(name: str = None):
+def define(name: str | None = None) -> Callable[[Callable[..., Any]], Word]:
     """
     Decorator to define and register a Joy word.
 
@@ -165,17 +165,16 @@ def define(name: str = None):
 
         # Usage: 5 double -> 10
     """
-    def decorator(f: Callable) -> Word:
-        word_name = name or f.__name__
+
+    def decorator(f: Callable[..., Any]) -> Word:
+        word_name = name or cast(str, getattr(f, "__name__", "<unknown>"))
 
         @wraps(f)
         def wrapper(stack: Stack) -> None:
             return f(stack)
 
-        wrapper.__name__ = f.__name__
-        wrapper.__doc__ = f.__doc__
-        wrapper._is_word = True
-        wrapper.joy_word = word_name
+        wrapper._is_word = True  # type: ignore[attr-defined]
+        wrapper.joy_word = word_name  # type: ignore[attr-defined]
 
         WORDS[word_name] = wrapper
         return wrapper

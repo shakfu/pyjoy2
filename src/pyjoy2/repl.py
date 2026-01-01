@@ -8,16 +8,17 @@ Supports:
 - Multi-line function definitions
 - Commands: .s, .c, .w, .def, .import
 """
+
 from __future__ import annotations
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 import re
 import sys
 import traceback
 
 from .core import Stack, WORDS, word, define, execute
-from .parser import parse, tokenize, ParseError
+from .parser import parse
 
-__all__ = ['HybridREPL', 'repl', 'run']
+__all__ = ["HybridREPL", "repl", "run"]
 
 
 class HybridREPL:
@@ -37,20 +38,20 @@ class HybridREPL:
     - .import module: import Python module
     """
 
-    def __init__(self, stack: Stack = None):
+    def __init__(self, stack: Stack | None = None):
         self.stack = stack if stack is not None else Stack()
         self.pending_lines: List[str] = []
 
         # Python namespace with useful bindings
         self.globals: Dict[str, Any] = {
-            'stack': self.stack,
-            'S': self.stack,
-            'word': word,
-            'define': define,
-            'WORDS': WORDS,
-            'Stack': Stack,
-            'execute': execute,
-            '__builtins__': __builtins__,
+            "stack": self.stack,
+            "S": self.stack,
+            "word": word,
+            "define": define,
+            "WORDS": WORDS,
+            "Stack": Stack,
+            "execute": execute,
+            "__builtins__": __builtins__,
         }
         self.locals: Dict[str, Any] = {}
 
@@ -72,24 +73,33 @@ class HybridREPL:
     def _is_incomplete(self, code: str) -> bool:
         """Check if Python code is incomplete (needs more lines)."""
         try:
-            compile(code, '<input>', 'exec')
+            compile(code, "<input>", "exec")
             return False
         except SyntaxError as e:
             msg = str(e)
-            return 'unexpected EOF' in msg or 'EOF while scanning' in msg
+            return "unexpected EOF" in msg or "EOF while scanning" in msg
 
     def _handle_python_block(self, line: str) -> bool:
         """
         Handle multi-line Python blocks (def, class, etc.)
         Returns True if line was handled as Python block.
         """
-        block_starters = ('def ', 'class ', 'if ', 'for ', 'while ',
-                          'with ', 'try:', 'async ', '@')
+        block_starters = (
+            "def ",
+            "class ",
+            "if ",
+            "for ",
+            "while ",
+            "with ",
+            "try:",
+            "async ",
+            "@",
+        )
         is_block_start = any(line.lstrip().startswith(s) for s in block_starters)
 
         if self.pending_lines or is_block_start:
             self.pending_lines.append(line)
-            code = '\n'.join(self.pending_lines)
+            code = "\n".join(self.pending_lines)
 
             if self._is_incomplete(code):
                 return True  # Need more lines
@@ -105,8 +115,8 @@ class HybridREPL:
     def _register_new_words(self) -> None:
         """Check for newly defined functions with decorators."""
         for name, obj in list(self.locals.items()):
-            if callable(obj) and hasattr(obj, '__name__'):
-                if hasattr(obj, 'joy_word'):
+            if callable(obj) and hasattr(obj, "__name__"):
+                if hasattr(obj, "joy_word"):
                     print(f"  Registered word: {obj.joy_word}")
         self.globals.update(self.locals)
 
@@ -117,28 +127,28 @@ class HybridREPL:
             return
 
         # Handle REPL commands
-        if stripped == '.s':
+        if stripped == ".s":
             self._show_stack()
             return
-        if stripped == '.c':
+        if stripped == ".c":
             self.stack.clear()
             print("  Stack cleared")
             return
-        if stripped == '.w':
+        if stripped == ".w":
             self._show_words()
             return
-        if stripped.startswith('.def '):
+        if stripped.startswith(".def "):
             self._define_word(stripped[5:])
             return
-        if stripped.startswith('.import '):
+        if stripped.startswith(".import "):
             mod = stripped[8:].strip()
             self._exec(f"import {mod}")
             print(f"  Imported {mod}")
             return
-        if stripped.startswith('.load '):
+        if stripped.startswith(".load "):
             self._load_file(stripped[6:].strip())
             return
-        if stripped == '.help':
+        if stripped == ".help":
             self._show_help()
             return
 
@@ -150,15 +160,15 @@ class HybridREPL:
         tokens = self._tokenize_hybrid(line)
 
         for token in tokens:
-            if token['type'] == 'python_expr':
-                result = self._eval(token['value'])
+            if token["type"] == "python_expr":
+                result = self._eval(token["value"])
                 self.stack.push(result)
 
-            elif token['type'] == 'python_stmt':
-                self._exec(token['value'])
+            elif token["type"] == "python_stmt":
+                self._exec(token["value"])
 
-            elif token['type'] == 'word':
-                name = token['value']
+            elif token["type"] == "word":
+                name = token["value"]
                 if name in WORDS:
                     WORDS[name](self.stack)
                 elif name in self.globals:
@@ -168,12 +178,12 @@ class HybridREPL:
                 else:
                     raise NameError(f"Unknown word: {name}")
 
-            elif token['type'] == 'quotation':
-                inner = self._parse_quotation(token['value'])
+            elif token["type"] == "quotation":
+                inner = self._parse_quotation(token["value"])
                 self.stack.push(inner)
 
-            elif token['type'] == 'literal':
-                self.stack.push(token['value'])
+            elif token["type"] == "literal":
+                self.stack.push(token["value"])
 
     def _tokenize_hybrid(self, line: str) -> List[Dict[str, Any]]:
         """
@@ -199,53 +209,53 @@ class HybridREPL:
                 break
 
             # Backtick Python expression: `expr`
-            if line[i] == '`':
-                j = line.index('`', i + 1)
-                tokens.append({'type': 'python_expr', 'value': line[i+1:j]})
+            if line[i] == "`":
+                j = line.index("`", i + 1)
+                tokens.append({"type": "python_expr", "value": line[i + 1 : j]})
                 i = j + 1
 
             # Dollar Python expression: $(expr)
-            elif line[i:i+2] == '$(':
+            elif line[i : i + 2] == "$(":
                 depth = 1
                 j = i + 2
                 while depth > 0 and j < len(line):
-                    if line[j] == '(':
+                    if line[j] == "(":
                         depth += 1
-                    elif line[j] == ')':
+                    elif line[j] == ")":
                         depth -= 1
                     j += 1
-                tokens.append({'type': 'python_expr', 'value': line[i+2:j-1]})
+                tokens.append({"type": "python_expr", "value": line[i + 2 : j - 1]})
                 i = j
 
             # Python statement: !statement
-            elif line[i] == '!':
+            elif line[i] == "!":
                 j = i + 1
-                while j < len(line) and line[j] not in '[]`':
+                while j < len(line) and line[j] not in "[]`":
                     j += 1
-                tokens.append({'type': 'python_stmt', 'value': line[i+1:j].strip()})
+                tokens.append({"type": "python_stmt", "value": line[i + 1 : j].strip()})
                 i = j
 
             # Quotation: [...]
-            elif line[i] == '[':
+            elif line[i] == "[":
                 depth = 1
                 j = i + 1
                 while depth > 0 and j < len(line):
-                    if line[j] == '[':
+                    if line[j] == "[":
                         depth += 1
-                    elif line[j] == ']':
+                    elif line[j] == "]":
                         depth -= 1
                     j += 1
-                tokens.append({'type': 'quotation', 'value': line[i+1:j-1]})
+                tokens.append({"type": "quotation", "value": line[i + 1 : j - 1]})
                 i = j
 
             # String: "..."
             elif line[i] == '"':
                 j = i + 1
                 while j < len(line) and line[j] != '"':
-                    if line[j] == '\\':
+                    if line[j] == "\\":
                         j += 1
                     j += 1
-                tokens.append({'type': 'literal', 'value': line[i+1:j]})
+                tokens.append({"type": "literal", "value": line[i + 1 : j]})
                 i = j + 1
 
             # Number or word
@@ -257,18 +267,18 @@ class HybridREPL:
 
                 # Try to parse as number
                 try:
-                    if '.' in token_str or 'e' in token_str.lower():
-                        tokens.append({'type': 'literal', 'value': float(token_str)})
+                    if "." in token_str or "e" in token_str.lower():
+                        tokens.append({"type": "literal", "value": float(token_str)})
                     else:
-                        tokens.append({'type': 'literal', 'value': int(token_str)})
+                        tokens.append({"type": "literal", "value": int(token_str)})
                 except ValueError:
                     # Handle booleans
-                    if token_str == 'true':
-                        tokens.append({'type': 'literal', 'value': True})
-                    elif token_str == 'false':
-                        tokens.append({'type': 'literal', 'value': False})
+                    if token_str == "true":
+                        tokens.append({"type": "literal", "value": True})
+                    elif token_str == "false":
+                        tokens.append({"type": "literal", "value": False})
                     else:
-                        tokens.append({'type': 'word', 'value': token_str})
+                        tokens.append({"type": "word", "value": token_str})
 
                 i = j
 
@@ -283,23 +293,25 @@ class HybridREPL:
         result = []
 
         for token in tokens:
-            if token['type'] == 'word':
-                name = token['value']
+            if token["type"] == "word":
+                name = token["value"]
                 if name in WORDS:
                     result.append(WORDS[name])
                 else:
                     # Keep as string for late binding
                     result.append(name)
-            elif token['type'] == 'quotation':
-                result.append(self._parse_quotation(token['value']))
-            elif token['type'] == 'python_expr':
+            elif token["type"] == "quotation":
+                result.append(self._parse_quotation(token["value"]))
+            elif token["type"] == "python_expr":
                 # Create a closure to evaluate later
-                expr = token['value']
+                expr = token["value"]
+
                 def make_eval_fn(e):
                     return lambda s: s.push(self._eval(e))
+
                 result.append(make_eval_fn(expr))
             else:
-                result.append(token['value'])
+                result.append(token["value"])
 
         return result
 
@@ -332,7 +344,7 @@ class HybridREPL:
 
     def _define_word(self, defn: str) -> None:
         """Define new word: .def name [body]"""
-        match = re.match(r'(\w[\w\-]*)\s+\[(.+)\]', defn)
+        match = re.match(r"(\w[\w\-]*)\s+\[(.+)\]", defn)
         if not match:
             print("  Usage: .def name [body]")
             return
@@ -420,12 +432,12 @@ Defining words:
                 line = input(prompt)
 
                 # Handle quit
-                if line.strip() == 'quit' and not self.pending_lines:
+                if line.strip() == "quit" and not self.pending_lines:
                     break
 
                 # Handle empty line in pending block
                 if not line.strip() and self.pending_lines:
-                    code = '\n'.join(self.pending_lines)
+                    code = "\n".join(self.pending_lines)
                     self._exec(code)
                     self.pending_lines = []
                     self._register_new_words()
@@ -455,16 +467,16 @@ Defining words:
             except Exception as e:
                 self.pending_lines = []
                 print(f"  Error: {e}")
-                if '--debug' in sys.argv:
+                if "--debug" in sys.argv:
                     traceback.print_exc()
 
 
-def repl(stack: Stack = None) -> None:
+def repl(stack: Stack | None = None) -> None:
     """Start the hybrid REPL."""
     HybridREPL(stack).run()
 
 
-def run(source: str, stack: Stack = None) -> Stack:
+def run(source: str, stack: Stack | None = None) -> Stack:
     """
     Run a Joy program and return the stack.
 
@@ -472,13 +484,14 @@ def run(source: str, stack: Stack = None) -> Stack:
         >>> run("3 4 + dup *")
         Stack([49])
     """
-    stack = stack or Stack()
+    if stack is None:
+        stack = Stack()
     repl_instance = HybridREPL(stack)
 
     # Process each line
-    for line in source.strip().split('\n'):
+    for line in source.strip().split("\n"):
         line = line.strip()
-        if line and not line.startswith('#'):
+        if line and not line.startswith("#"):
             repl_instance.process_line(line)
 
     return stack

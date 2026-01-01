@@ -9,16 +9,17 @@ Organized by category:
 - List operations
 - Combinators
 """
+
 from __future__ import annotations
-from typing import Any
 from .core import Stack, WORDS, word, define, execute
 
-__all__ = ['register_builtins']
+__all__ = ["register_builtins"]
 
 
 # ============================================================
 # Stack Operations
 # ============================================================
+
 
 @define("dup")
 def _dup(s: Stack):
@@ -138,10 +139,13 @@ def _depth(s: Stack):
 # Arithmetic
 # ============================================================
 
+
 @word
 def add(a, b):
     """N1 N2 -> N3 : Addition."""
     return a + b
+
+
 WORDS["+"] = WORDS["add"]
 
 
@@ -149,6 +153,8 @@ WORDS["+"] = WORDS["add"]
 def sub(a, b):
     """N1 N2 -> N3 : Subtraction."""
     return a - b
+
+
 WORDS["-"] = WORDS["sub"]
 
 
@@ -156,6 +162,8 @@ WORDS["-"] = WORDS["sub"]
 def mul(a, b):
     """N1 N2 -> N3 : Multiplication."""
     return a * b
+
+
 WORDS["*"] = WORDS["mul"]
 
 
@@ -163,6 +171,8 @@ WORDS["*"] = WORDS["mul"]
 def div(a, b):
     """N1 N2 -> N3 : Division."""
     return a / b
+
+
 WORDS["/"] = WORDS["div"]
 
 
@@ -170,6 +180,8 @@ WORDS["/"] = WORDS["div"]
 def floordiv(a, b):
     """N1 N2 -> N3 : Integer division."""
     return a // b
+
+
 WORDS["//"] = WORDS["floordiv"]
 
 
@@ -177,6 +189,8 @@ WORDS["//"] = WORDS["floordiv"]
 def mod(a, b):
     """N1 N2 -> N3 : Modulo."""
     return a % b
+
+
 WORDS["%"] = WORDS["mod"]
 
 
@@ -190,6 +204,8 @@ def neg(x):
 def abs_(x):
     """N -> N : Absolute value."""
     return abs(x)
+
+
 WORDS["abs"] = WORDS["abs_"]
 
 
@@ -203,6 +219,8 @@ def sign(x):
 def min_(a, b):
     """N1 N2 -> N : Minimum."""
     return min(a, b)
+
+
 WORDS["min"] = WORDS["min_"]
 
 
@@ -210,6 +228,8 @@ WORDS["min"] = WORDS["min_"]
 def max_(a, b):
     """N1 N2 -> N : Maximum."""
     return max(a, b)
+
+
 WORDS["max"] = WORDS["max_"]
 
 
@@ -228,7 +248,9 @@ def pred(x):
 @word
 def pow_(a, b):
     """N1 N2 -> N : Power."""
-    return a ** b
+    return a**b
+
+
 WORDS["pow"] = WORDS["pow_"]
 WORDS["**"] = WORDS["pow_"]
 
@@ -237,10 +259,13 @@ WORDS["**"] = WORDS["pow_"]
 # Comparison
 # ============================================================
 
+
 @word
 def lt(a, b):
     """X Y -> B : Less than."""
     return a < b
+
+
 WORDS["<"] = WORDS["lt"]
 
 
@@ -248,6 +273,8 @@ WORDS["<"] = WORDS["lt"]
 def le(a, b):
     """X Y -> B : Less than or equal."""
     return a <= b
+
+
 WORDS["<="] = WORDS["le"]
 
 
@@ -255,6 +282,8 @@ WORDS["<="] = WORDS["le"]
 def gt(a, b):
     """X Y -> B : Greater than."""
     return a > b
+
+
 WORDS[">"] = WORDS["gt"]
 
 
@@ -262,6 +291,8 @@ WORDS[">"] = WORDS["gt"]
 def ge(a, b):
     """X Y -> B : Greater than or equal."""
     return a >= b
+
+
 WORDS[">="] = WORDS["ge"]
 
 
@@ -269,6 +300,8 @@ WORDS[">="] = WORDS["ge"]
 def eq(a, b):
     """X Y -> B : Equal."""
     return a == b
+
+
 WORDS["="] = WORDS["eq"]
 WORDS["=="] = WORDS["eq"]
 
@@ -277,6 +310,8 @@ WORDS["=="] = WORDS["eq"]
 def ne(a, b):
     """X Y -> B : Not equal."""
     return a != b
+
+
 WORDS["!="] = WORDS["ne"]
 WORDS["<>"] = WORDS["ne"]
 
@@ -291,10 +326,13 @@ def cmp(a, b):
 # Logic
 # ============================================================
 
+
 @word
 def not_(x):
     """B -> B : Logical not."""
     return not x
+
+
 WORDS["not"] = WORDS["not_"]
 
 
@@ -302,6 +340,8 @@ WORDS["not"] = WORDS["not_"]
 def and_(a, b):
     """B1 B2 -> B : Logical and."""
     return a and b
+
+
 WORDS["and"] = WORDS["and_"]
 
 
@@ -309,6 +349,8 @@ WORDS["and"] = WORDS["and_"]
 def or_(a, b):
     """B1 B2 -> B : Logical or."""
     return a or b
+
+
 WORDS["or"] = WORDS["or_"]
 
 
@@ -322,10 +364,11 @@ def xor(a, b):
 # List/Sequence Operations
 # ============================================================
 
+
 @word
 def first(seq):
     """[X ...] -> X : First element."""
-    if hasattr(seq, '__iter__'):
+    if hasattr(seq, "__iter__"):
         return next(iter(seq))
     raise TypeError(f"first: not a sequence: {type(seq)}")
 
@@ -362,8 +405,10 @@ def uncons(seq):
         it = iter(seq)
         first = next(it)
         return (first, list(it))
+
+
 # Mark to push tuple elements separately
-uncons._push_tuple = True
+uncons._push_tuple = True  # type: ignore[attr-defined]
 
 
 @word
@@ -372,6 +417,8 @@ def concat(a, b):
     if isinstance(a, str) and isinstance(b, str):
         return a + b
     return list(a) + list(b)
+
+
 WORDS["cat"] = WORDS["concat"]
 
 
@@ -379,6 +426,8 @@ WORDS["cat"] = WORDS["concat"]
 def size(seq):
     """[...] -> N : Length of sequence."""
     return len(seq)
+
+
 WORDS["len"] = WORDS["size"]
 WORDS["length"] = WORDS["size"]
 
@@ -387,6 +436,8 @@ WORDS["length"] = WORDS["size"]
 def null(seq):
     """[...] -> B : True if empty."""
     return len(seq) == 0
+
+
 WORDS["empty"] = WORDS["null"]
 
 
@@ -418,6 +469,8 @@ def drop_(n, seq):
     if isinstance(seq, str):
         return seq[n:]
     return list(seq)[n:]
+
+
 # Note: drop without underscore is stack drop
 
 
@@ -425,6 +478,8 @@ def drop_(n, seq):
 def range_(stop):
     """N -> [...] : Range from 0 to N-1."""
     return list(range(stop))
+
+
 WORDS["range"] = WORDS["range_"]
 
 
@@ -440,6 +495,8 @@ def list_(x):
     if isinstance(x, (list, tuple, str, range)):
         return list(x)
     return [x]
+
+
 WORDS["list"] = WORDS["list_"]
 
 
@@ -465,6 +522,8 @@ def sort(seq):
 def sum_(seq):
     """[...] -> N : Sum of sequence."""
     return sum(seq)
+
+
 WORDS["sum"] = WORDS["sum_"]
 
 
@@ -481,11 +540,14 @@ def prod(seq):
 # Combinators
 # ============================================================
 
+
 @define("i")
 def _i(s: Stack):
     """[P] -> ... : Execute quotation."""
     quot = s.pop()
     execute(s, quot)
+
+
 WORDS["call"] = WORDS["i"]
 
 
@@ -648,6 +710,8 @@ def _each(s: Stack):
     for item in items:
         s.push(item)
         execute(s, quot)
+
+
 WORDS["step"] = WORDS["each"]
 
 
@@ -696,6 +760,8 @@ def _fold(s: Stack):
         acc = s.pop()
 
     s.push(acc)
+
+
 WORDS["reduce"] = WORDS["fold"]
 
 
@@ -749,6 +815,7 @@ def _enumerate(s: Stack):
 # ============================================================
 # Recursion Combinators
 # ============================================================
+
 
 @define("linrec")
 def _linrec(s: Stack):
@@ -825,6 +892,7 @@ def _primrec(s: Stack):
 # I/O
 # ============================================================
 
+
 @define("print")
 def _print(s: Stack):
     """X -> : Print top of stack."""
@@ -840,7 +908,7 @@ def _dot(s: Stack):
 @define("puts")
 def _puts(s: Stack):
     """S -> : Print string without newline."""
-    print(s.pop(), end='')
+    print(s.pop(), end="")
 
 
 @define("show")
@@ -866,10 +934,13 @@ def _prompt(s: Stack):
 # Type Operations
 # ============================================================
 
+
 @word
 def type_(x):
     """X -> S : Type name of X."""
     return type(x).__name__
+
+
 WORDS["type"] = WORDS["type_"]
 WORDS["typeof"] = WORDS["type_"]
 
@@ -878,6 +949,8 @@ WORDS["typeof"] = WORDS["type_"]
 def int_(x):
     """X -> N : Convert to int."""
     return int(x)
+
+
 WORDS["int"] = WORDS["int_"]
 
 
@@ -885,6 +958,8 @@ WORDS["int"] = WORDS["int_"]
 def float_(x):
     """X -> F : Convert to float."""
     return float(x)
+
+
 WORDS["float"] = WORDS["float_"]
 
 
@@ -892,6 +967,8 @@ WORDS["float"] = WORDS["float_"]
 def str_(x):
     """X -> S : Convert to string."""
     return str(x)
+
+
 WORDS["str"] = WORDS["str_"]
 
 
@@ -899,6 +976,8 @@ WORDS["str"] = WORDS["str_"]
 def bool_(x):
     """X -> B : Convert to boolean."""
     return bool(x)
+
+
 WORDS["bool"] = WORDS["bool_"]
 
 
@@ -906,12 +985,15 @@ WORDS["bool"] = WORDS["bool_"]
 def repr_(x):
     """X -> S : String representation."""
     return repr(x)
+
+
 WORDS["repr"] = WORDS["repr_"]
 
 
 # ============================================================
 # Misc
 # ============================================================
+
 
 @define("id")
 def _id(s: Stack):
@@ -961,6 +1043,7 @@ def _pop2(s: Stack):
 # ============================================================
 # Registration
 # ============================================================
+
 
 def register_builtins():
     """

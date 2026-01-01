@@ -1,4 +1,4 @@
-.PHONY: all sync repl build test clean
+.PHONY: all sync repl build test format lint typecheck clean
 
 
 all: sync
@@ -18,6 +18,18 @@ build: sync
 
 test: sync
 	@uv run pytest
+
+
+format:
+	@uv run ruff format .
+
+
+lint:
+	@uv run ruff check --fix src/
+
+
+typecheck:
+	@uv run ty check src/
 
 
 clean:

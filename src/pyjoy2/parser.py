@@ -8,18 +8,23 @@ Supports:
 - Quotations: [dup *]
 - Words: dup, swap, +, my-word
 """
+
 from __future__ import annotations
-from typing import List, Any, Iterator, Optional
+from typing import List, Any, Iterator
 from dataclasses import dataclass
 import re
 
 from .core import WORDS
 
-__all__ = ['parse', 'tokenize', 'Token', 'ParseError']
+__all__ = ["parse", "tokenize", "Token", "ParseError"]
+
+# Sentinel value for "skip this term"
+_SKIP = object()
 
 
 class ParseError(Exception):
     """Parsing error with location info."""
+
     def __init__(self, message: str, line: int = 0, col: int = 0):
         self.line = line
         self.col = col
@@ -29,6 +34,7 @@ class ParseError(Exception):
 @dataclass
 class Token:
     """A parsed token."""
+
     type: str
     value: Any
     line: int = 0
@@ -37,23 +43,23 @@ class Token:
 
 # Token patterns
 PATTERNS = [
-    ('COMMENT', r'\(\*.*?\*\)'),           # (* comment *)
-    ('COMMENT2', r'#[^\n]*'),              # # comment
-    ('FLOAT', r'-?\d+\.\d+(?:[eE][+-]?\d+)?'),
-    ('INTEGER', r'-?\d+'),
-    ('STRING', r'"(?:[^"\\]|\\.)*"'),
-    ('LBRACKET', r'\['),
-    ('RBRACKET', r'\]'),
-    ('LBRACE', r'\{'),
-    ('RBRACE', r'\}'),
-    ('SEMICOLON', r';'),
-    ('PERIOD', r'\.(?!\d)'),               # Not followed by digit
-    ('DEFINE', r'=='),
-    ('WORD', r'[a-zA-Z_][a-zA-Z0-9_\-]*|[+\-*/<=>&|!?@#$%^~:]+'),
-    ('WHITESPACE', r'\s+'),
+    ("COMMENT", r"\(\*.*?\*\)"),  # (* comment *)
+    ("COMMENT2", r"#[^\n]*"),  # # comment
+    ("FLOAT", r"-?\d+\.\d+(?:[eE][+-]?\d+)?"),
+    ("INTEGER", r"-?\d+"),
+    ("STRING", r'"(?:[^"\\]|\\.)*"'),
+    ("LBRACKET", r"\["),
+    ("RBRACKET", r"\]"),
+    ("LBRACE", r"\{"),
+    ("RBRACE", r"\}"),
+    ("SEMICOLON", r";"),
+    ("PERIOD", r"\.(?!\d)"),  # Not followed by digit
+    ("DEFINE", r"=="),
+    ("WORD", r"[a-zA-Z_][a-zA-Z0-9_\-]*|[+\-*/<=>&|!?@#$%^~:]+"),
+    ("WHITESPACE", r"\s+"),
 ]
 
-TOKEN_RE = re.compile('|'.join(f'(?P<{n}>{p})' for n, p in PATTERNS))
+TOKEN_RE = re.compile("|".join(f"(?P<{n}>{p})" for n, p in PATTERNS))
 
 
 def tokenize(source: str) -> Iterator[Token]:
@@ -67,25 +73,28 @@ def tokenize(source: str) -> Iterator[Token]:
 
     for match in TOKEN_RE.finditer(source):
         kind = match.lastgroup
-        value = match.group()
+        value: Any = match.group()
         col = match.start() - line_start
 
         # Track line numbers
-        newlines = value.count('\n')
+        newlines = value.count("\n")
         if newlines:
             line += newlines
-            line_start = match.end() - len(value.split('\n')[-1])
+            line_start = match.end() - len(value.split("\n")[-1])
 
         # Skip whitespace and comments
-        if kind in ('WHITESPACE', 'COMMENT', 'COMMENT2'):
+        if kind in ("WHITESPACE", "COMMENT", "COMMENT2"):
             continue
 
+        # kind is guaranteed to be non-None after skipping whitespace/comments
+        assert kind is not None
+
         # Convert token value
-        if kind == 'INTEGER':
+        if kind == "INTEGER":
             value = int(value)
-        elif kind == 'FLOAT':
+        elif kind == "FLOAT":
             value = float(value)
-        elif kind == 'STRING':
+        elif kind == "STRING":
             value = _unescape(value[1:-1])
 
         yield Token(kind, value, line, col)
@@ -93,7 +102,7 @@ def tokenize(source: str) -> Iterator[Token]:
 
 def _unescape(s: str) -> str:
     """Process escape sequences in string."""
-    return s.encode('utf-8').decode('unicode_escape')
+    return s.encode("utf-8").decode("unicode_escape")
 
 
 def parse(source: str) -> List[Any]:
@@ -109,8 +118,9 @@ def parse(source: str) -> List[Any]:
     return _parse_terms(tokens, 0, set())[0]
 
 
-def _parse_terms(tokens: List[Token], pos: int,
-                 terminators: set) -> tuple[List[Any], int]:
+def _parse_terms(
+    tokens: List[Token], pos: int, terminators: set
+) -> tuple[List[Any], int]:
     """Parse sequence of terms until terminator."""
     result = []
 
@@ -121,51 +131,51 @@ def _parse_terms(tokens: List[Token], pos: int,
             break
 
         term, pos = _parse_term(tokens, pos)
-        if term is not None:
+        if term is not _SKIP:
             result.append(term)
 
     return result, pos
 
 
 def _parse_term(tokens: List[Token], pos: int) -> tuple[Any, int]:
-    """Parse single term, return (value, new_pos)."""
+    """Parse single term, return (value, new_pos). Returns _SKIP for terms to ignore."""
     if pos >= len(tokens):
-        return None, pos
+        return _SKIP, pos
 
     token = tokens[pos]
 
-    if token.type == 'INTEGER':
+    if token.type == "INTEGER":
         return token.value, pos + 1
 
-    elif token.type == 'FLOAT':
+    elif token.type == "FLOAT":
         return token.value, pos + 1
 
-    elif token.type == 'STRING':
+    elif token.type == "STRING":
         return token.value, pos + 1
 
-    elif token.type == 'LBRACKET':
+    elif token.type == "LBRACKET":
         # Parse quotation
-        inner, new_pos = _parse_terms(tokens, pos + 1, {'RBRACKET'})
-        if new_pos >= len(tokens) or tokens[new_pos].type != 'RBRACKET':
+        inner, new_pos = _parse_terms(tokens, pos + 1, {"RBRACKET"})
+        if new_pos >= len(tokens) or tokens[new_pos].type != "RBRACKET":
             raise ParseError("Expected ']'", token.line, token.col)
         return inner, new_pos + 1
 
-    elif token.type == 'LBRACE':
+    elif token.type == "LBRACE":
         # Parse set literal
-        inner, new_pos = _parse_terms(tokens, pos + 1, {'RBRACE'})
-        if new_pos >= len(tokens) or tokens[new_pos].type != 'RBRACE':
+        inner, new_pos = _parse_terms(tokens, pos + 1, {"RBRACE"})
+        if new_pos >= len(tokens) or tokens[new_pos].type != "RBRACE":
             raise ParseError("Expected '}'", token.line, token.col)
         # Convert to frozenset
         return frozenset(inner), new_pos + 1
 
-    elif token.type == 'WORD':
+    elif token.type == "WORD":
         value = token.value
         # Handle special words
-        if value == 'true':
+        if value == "true":
             return True, pos + 1
-        elif value == 'false':
+        elif value == "false":
             return False, pos + 1
-        elif value == 'nil' or value == 'null':
+        elif value == "nil" or value == "null":
             return None, pos + 1
         # Look up in WORDS or return as string
         elif value in WORDS:
@@ -174,13 +184,13 @@ def _parse_term(tokens: List[Token], pos: int) -> tuple[Any, int]:
             # Return as string - will be looked up at runtime
             return value, pos + 1
 
-    elif token.type in ('SEMICOLON', 'PERIOD'):
+    elif token.type in ("SEMICOLON", "PERIOD"):
         # Statement terminator - skip
-        return None, pos + 1
+        return _SKIP, pos + 1
 
-    elif token.type == 'DEFINE':
+    elif token.type == "DEFINE":
         # Definition - skip for now
-        return None, pos + 1
+        return _SKIP, pos + 1
 
     else:
         raise ParseError(f"Unexpected token: {token.type}", token.line, token.col)

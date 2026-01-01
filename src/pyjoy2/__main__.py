@@ -7,48 +7,31 @@ Usage:
     python -m pyjoy2 -e "expr"    # Evaluate expression
     python -m pyjoy2 --help       # Show help
 """
+
 import argparse
 import sys
 
 from .repl import HybridREPL, run
-from .core import Stack
 
 
 def main():
     parser = argparse.ArgumentParser(
-        prog='pyjoy2',
-        description='PyJoy2 - A Pythonic Joy implementation'
+        prog="pyjoy2", description="PyJoy2 - A Pythonic Joy implementation"
+    )
+    parser.add_argument("file", nargs="?", help="Joy source file to execute")
+    parser.add_argument("-e", "--eval", metavar="EXPR", help="Evaluate Joy expression")
+    parser.add_argument(
+        "-c", "--command", metavar="CMD", help="Execute Joy program (alias for -e)"
     )
     parser.add_argument(
-        'file',
-        nargs='?',
-        help='Joy source file to execute'
+        "--debug", action="store_true", help="Enable debug mode (show tracebacks)"
     )
-    parser.add_argument(
-        '-e', '--eval',
-        metavar='EXPR',
-        help='Evaluate Joy expression'
-    )
-    parser.add_argument(
-        '-c', '--command',
-        metavar='CMD',
-        help='Execute Joy program (alias for -e)'
-    )
-    parser.add_argument(
-        '--debug',
-        action='store_true',
-        help='Enable debug mode (show tracebacks)'
-    )
-    parser.add_argument(
-        '--version',
-        action='version',
-        version='%(prog)s 0.1.0'
-    )
+    parser.add_argument("--version", action="version", version="%(prog)s 0.1.0")
 
     args = parser.parse_args()
 
     if args.debug:
-        sys.argv.append('--debug')
+        sys.argv.append("--debug")
 
     # Evaluate expression
     if args.eval or args.command:
@@ -62,6 +45,7 @@ def main():
             print(f"Error: {e}", file=sys.stderr)
             if args.debug:
                 import traceback
+
                 traceback.print_exc()
             sys.exit(1)
         return
@@ -82,6 +66,7 @@ def main():
             print(f"Error: {e}", file=sys.stderr)
             if args.debug:
                 import traceback
+
                 traceback.print_exc()
             sys.exit(1)
         return
@@ -91,5 +76,5 @@ def main():
     repl_instance.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
