@@ -185,6 +185,18 @@ class HybridREPL:
             elif token["type"] == "literal":
                 self.stack.push(token["value"])
 
+    def _find_balanced(self, line: str, start: int, open_ch: str, close_ch: str) -> int:
+        """Find end of balanced delimiters, return position after closing."""
+        depth = 1
+        j = start
+        while depth > 0 and j < len(line):
+            if line[j] == open_ch:
+                depth += 1
+            elif line[j] == close_ch:
+                depth -= 1
+            j += 1
+        return j
+
     def _tokenize_hybrid(self, line: str) -> List[Dict[str, Any]]:
         """
         Tokenize line into Joy words and Python expressions.
@@ -216,14 +228,7 @@ class HybridREPL:
 
             # Dollar Python expression: $(expr)
             elif line[i : i + 2] == "$(":
-                depth = 1
-                j = i + 2
-                while depth > 0 and j < len(line):
-                    if line[j] == "(":
-                        depth += 1
-                    elif line[j] == ")":
-                        depth -= 1
-                    j += 1
+                j = self._find_balanced(line, i + 2, "(", ")")
                 tokens.append({"type": "python_expr", "value": line[i + 2 : j - 1]})
                 i = j
 
@@ -237,14 +242,7 @@ class HybridREPL:
 
             # Quotation: [...]
             elif line[i] == "[":
-                depth = 1
-                j = i + 1
-                while depth > 0 and j < len(line):
-                    if line[j] == "[":
-                        depth += 1
-                    elif line[j] == "]":
-                        depth -= 1
-                    j += 1
+                j = self._find_balanced(line, i + 1, "[", "]")
                 tokens.append({"type": "quotation", "value": line[i + 1 : j - 1]})
                 i = j
 

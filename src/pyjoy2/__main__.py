@@ -10,8 +10,48 @@ Usage:
 
 import argparse
 import sys
+import traceback
 
 from .repl import HybridREPL, run
+
+
+def _print_stack(stack):
+    """Print stack contents."""
+    for item in stack:
+        print(repr(item))
+
+
+def _handle_error(e: Exception, debug: bool) -> None:
+    """Print error and optionally show traceback."""
+    print(f"Error: {e}", file=sys.stderr)
+    if debug:
+        traceback.print_exc()
+    sys.exit(1)
+
+
+def _run_expression(expr: str, debug: bool) -> None:
+    """Evaluate a Joy expression."""
+    try:
+        stack = run(expr)
+        if stack:
+            _print_stack(stack)
+    except Exception as e:
+        _handle_error(e, debug)
+
+
+def _run_file(filename: str, debug: bool) -> None:
+    """Execute a Joy source file."""
+    try:
+        with open(filename) as f:
+            source = f.read()
+        stack = run(source)
+        if stack:
+            _print_stack(stack)
+    except FileNotFoundError:
+        print(f"Error: file not found: {filename}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        _handle_error(e, debug)
 
 
 def main():
@@ -33,47 +73,12 @@ def main():
     if args.debug:
         sys.argv.append("--debug")
 
-    # Evaluate expression
     if args.eval or args.command:
-        expr = args.eval or args.command
-        try:
-            stack = run(expr)
-            if stack:
-                for item in stack:
-                    print(repr(item))
-        except Exception as e:
-            print(f"Error: {e}", file=sys.stderr)
-            if args.debug:
-                import traceback
-
-                traceback.print_exc()
-            sys.exit(1)
-        return
-
-    # Run file
-    if args.file:
-        try:
-            with open(args.file) as f:
-                source = f.read()
-            stack = run(source)
-            if stack:
-                for item in stack:
-                    print(repr(item))
-        except FileNotFoundError:
-            print(f"Error: file not found: {args.file}", file=sys.stderr)
-            sys.exit(1)
-        except Exception as e:
-            print(f"Error: {e}", file=sys.stderr)
-            if args.debug:
-                import traceback
-
-                traceback.print_exc()
-            sys.exit(1)
-        return
-
-    # Start REPL
-    repl_instance = HybridREPL()
-    repl_instance.run()
+        _run_expression(args.eval or args.command, args.debug)
+    elif args.file:
+        _run_file(args.file, args.debug)
+    else:
+        HybridREPL().run()
 
 
 if __name__ == "__main__":

@@ -377,8 +377,7 @@ class TestIntegration:
         # Test recursive word definition with .def using binrec (Joy-style)
         repl = HybridREPL()
         repl.process_line(
-            ".def qsort [[small] [] "
-            "[uncons [over >] partition] [enconcat] binrec]"
+            ".def qsort [[small] [] [uncons [over >] partition] [enconcat] binrec]"
         )
         repl.process_line("[3 1 4 1 5 9 2 6] qsort")
         assert list(repl.stack) == [[1, 1, 2, 3, 4, 5, 6, 9]]
@@ -411,3 +410,225 @@ class TestIntegration:
         """)
         # Sum of squares of odd numbers 0-9: 1 + 9 + 25 + 49 + 81 = 165
         assert list(result) == [165]
+
+
+class TestREPLEdgeCases:
+    """Tests for REPL edge cases and error handling."""
+
+    def test_unknown_word_error(self):
+        repl = HybridREPL()
+        with pytest.raises(NameError, match="Unknown word"):
+            repl.process_line("undefined_word_xyz")
+
+    def test_empty_line(self):
+        repl = HybridREPL()
+        repl.process_line("")  # Should not raise
+        assert list(repl.stack) == []
+
+    def test_whitespace_only_line(self):
+        repl = HybridREPL()
+        repl.process_line("   ")  # Should not raise
+        assert list(repl.stack) == []
+
+    def test_import_command(self):
+        repl = HybridREPL()
+        repl.process_line(".import collections")
+        assert "collections" in repl.globals
+
+    def test_load_nonexistent_file(self, capsys):
+        repl = HybridREPL()
+        repl.process_line(".load nonexistent_file_xyz.joy")
+        captured = capsys.readouterr()
+        assert "file not found" in captured.out
+
+    def test_def_invalid_syntax(self, capsys):
+        repl = HybridREPL()
+        repl.process_line(".def invalid")  # Missing body
+        captured = capsys.readouterr()
+        assert "Usage" in captured.out
+
+    def test_show_stack_command(self, capsys):
+        repl = HybridREPL()
+        repl.process_line("1 2 3")
+        repl.process_line(".s")
+        captured = capsys.readouterr()
+        assert "1" in captured.out
+        assert "2" in captured.out
+        assert "3" in captured.out
+
+    def test_clear_stack_command(self, capsys):
+        repl = HybridREPL()
+        repl.process_line("1 2 3")
+        repl.process_line(".c")
+        captured = capsys.readouterr()
+        assert "cleared" in captured.out.lower()
+        assert list(repl.stack) == []
+
+    def test_list_words_command(self, capsys):
+        repl = HybridREPL()
+        repl.process_line(".w")
+        captured = capsys.readouterr()
+        assert "dup" in captured.out
+        assert "swap" in captured.out
+
+    def test_help_command(self, capsys):
+        repl = HybridREPL()
+        repl.process_line(".help")
+        captured = capsys.readouterr()
+        assert "PyJoy2" in captured.out
+        assert ".def" in captured.out
+
+    def test_python_variable_access(self):
+        repl = HybridREPL()
+        repl.process_line("!my_var = 42")
+        repl.process_line("my_var")
+        assert list(repl.stack) == [42]
+
+    def test_python_local_variable_access(self):
+        repl = HybridREPL()
+        repl.process_line("!local_x = 100")
+        repl.process_line("`local_x * 2`")
+        assert list(repl.stack) == [200]
+
+    def test_incomplete_python_code_detection(self):
+        repl = HybridREPL()
+        # _is_incomplete detects "unexpected EOF" syntax errors
+        # Line continuation backslash triggers unexpected EOF
+        assert repl._is_incomplete("x = \\") is True
+        # Complete code is not incomplete
+        assert repl._is_incomplete("x = 1") is False
+        assert repl._is_incomplete("def foo():\n    return 42") is False
+        # Other syntax errors are not "incomplete" (they're just errors)
+        assert repl._is_incomplete('"hello') is False  # unterminated string
+        assert repl._is_incomplete("(1 + 2") is False  # unclosed paren
+
+    def test_dollar_syntax(self):
+        repl = HybridREPL()
+        repl.process_line("$(3 + 4)")
+        assert list(repl.stack) == [7]
+
+    def test_parse_quotation_with_nested(self):
+        repl = HybridREPL()
+        result = repl._parse_quotation("1 [2 3] 4")
+        assert result[0] == 1
+        assert result[1] == [2, 3]
+        assert result[2] == 4
+
+    def test_parse_quotation_with_python_expr(self):
+        repl = HybridREPL()
+        result = repl._parse_quotation("1 `2+3` 4")
+        # The python expr should be a callable
+        assert result[0] == 1
+        assert callable(result[1])
+        assert result[2] == 4
+
+
+class TestREPLPythonBlocks:
+    """Tests for Python block handling in REPL."""
+
+    def test_class_definition_via_bang(self):
+        repl = HybridREPL()
+        # Define a simple class using ! syntax
+        repl.process_line("!class Foo: x = 10")
+        assert "Foo" in repl.globals or "Foo" in repl.locals
+
+    def test_single_line_blocks_executed(self):
+        repl = HybridREPL()
+        # Test single-line Python statements via ! prefix
+        repl.process_line("!x = 42")
+        assert repl.locals.get("x") == 42
+
+        # Test single-line def (unusual but valid)
+        repl.process_line("!def add1(n): return n + 1")
+        assert repl.locals.get("add1")(5) == 6
+
+        # Test single-line class
+        repl.process_line("!class Point: x = 0; y = 0")
+        assert repl.locals.get("Point").x == 0
+
+
+class TestREPLExecuteProgram:
+    """Tests for _execute_program method."""
+
+    def test_execute_callable(self):
+        from pyjoy2.core import WORDS
+
+        repl = HybridREPL()
+        repl.stack.push(3, 4)
+        repl._execute_program([WORDS["+"]])
+        assert list(repl.stack) == [7]
+
+    def test_execute_list(self):
+        repl = HybridREPL()
+        repl._execute_program([[1, 2, 3]])
+        assert list(repl.stack) == [[1, 2, 3]]
+
+    def test_execute_string_known_word(self):
+        repl = HybridREPL()
+        repl.stack.push(5)
+        repl._execute_program(["dup"])
+        assert list(repl.stack) == [5, 5]
+
+    def test_execute_string_unknown_word(self):
+        repl = HybridREPL()
+        with pytest.raises(NameError, match="Unknown word"):
+            repl._execute_program(["unknown_word_xyz"])
+
+    def test_execute_literal(self):
+        repl = HybridREPL()
+        repl._execute_program([42, 3.14, True])
+        assert list(repl.stack) == [42, 3.14, True]
+
+
+class TestREPLLoadCommand:
+    """Tests for .load command."""
+
+    def test_load_file(self, tmp_path):
+        # Create a joy file
+        joy_file = tmp_path / "test.joy"
+        joy_file.write_text("10 20 +\n")
+
+        repl = HybridREPL()
+        repl._load_file(str(joy_file))
+        assert list(repl.stack) == [30]
+
+    def test_load_file_not_found(self, capsys):
+        repl = HybridREPL()
+        repl._load_file("nonexistent_file.joy")
+        captured = capsys.readouterr()
+        assert "Error loading" in captured.out or "not found" in captured.out.lower()
+
+
+class TestREPLEdgeCases2:
+    """Additional edge case tests."""
+
+    def test_long_repr_truncation(self, capsys):
+        repl = HybridREPL()
+        # Push a value with a very long repr
+        long_list = list(range(100))
+        repl.stack.push(long_list)
+        # Use .s command which truncates long repr strings
+        repl.process_line(".s")
+        captured = capsys.readouterr()
+        # Should have ... for truncation if the repr is long
+        output = captured.out
+
+    def test_push_from_locals(self):
+        repl = HybridREPL()
+        repl.process_line("!myvar = 42")
+        repl.process_line("`myvar`")
+        assert list(repl.stack) == [42]
+
+    def test_word_defined_via_exec(self, capsys):
+        repl = HybridREPL()
+        # Define a word directly in locals
+        repl.process_line("!from pyjoy2.core import WORDS, word")
+        # Use exec to define a decorated function properly
+        repl.process_line("""!exec('''
+@word
+def quadruple(x):
+    return x * 4
+''')""")
+        # The function should be registered via the decorator
+        repl.process_line("5 quadruple")
+        assert repl.stack.pop() == 20

@@ -688,3 +688,169 @@ class TestMisc:
         # Result should be [[2] *]
         assert len(result) == 2
         assert result[0] == [2]
+
+
+class TestEdgeCases:
+    """Tests for edge cases and less common paths."""
+
+    def test_first_error_on_non_sequence(self, stack):
+        stack.push(42)  # Not a sequence
+        with pytest.raises(TypeError, match="not a sequence"):
+            WORDS["first"](stack)
+
+    def test_rest_on_iterator(self, stack):
+        # Test rest on a general iterator (not list/tuple/str)
+        stack.push(iter([1, 2, 3]))
+        WORDS["rest"](stack)
+        assert stack.pop() == [2, 3]
+
+    def test_cons_on_string(self, stack):
+        stack.push("a", "bc")
+        WORDS["cons"](stack)
+        assert stack.pop() == "abc"
+
+    def test_uncons_on_string(self, stack):
+        stack.push("abc")
+        WORDS["uncons"](stack)
+        assert list(stack) == ["a", "bc"]
+
+    def test_uncons_on_iterator(self, stack):
+        # Test uncons on a general iterator
+        stack.push(iter([1, 2, 3]))
+        WORDS["uncons"](stack)
+        assert list(stack) == [1, [2, 3]]
+
+    def test_loop_combinator(self, stack):
+        # loop executes quotation repeatedly while top of stack is true
+        # This quotation: decrement counter, check if > 0
+        # Start with counter 3, decrement until 0
+        stack.push(3)
+        # Quotation: [1 - dup 0 >] - subtract 1, dup result, check if > 0
+        stack.push([1, WORDS["-"], WORDS["dup"], 0, WORDS[">"]])
+        WORDS["loop"](stack)
+        # After loop: 3 -> 2 -> 1 -> 0, stops when 0 > 0 is False
+        assert stack.pop() == 0
+
+    def test_while_combinator(self, stack):
+        # while [cond] [body]: increment until >= 5
+        stack.push(0)
+        stack.push([5, WORDS["<"]])  # condition: n < 5
+        stack.push([1, WORDS["+"]])  # body: n + 1
+        WORDS["while"](stack)
+        assert stack.pop() == 5
+
+    def test_while_false_initially(self, stack):
+        # while condition is false from the start
+        stack.push(10)
+        stack.push([5, WORDS["<"]])  # 10 < 5 is false
+        stack.push([1, WORDS["+"]])
+        WORDS["while"](stack)
+        assert stack.pop() == 10  # unchanged
+
+
+class TestTypeConversions:
+    """Additional type conversion tests."""
+
+    def test_int_from_float(self, stack):
+        stack.push(3.7)
+        WORDS["int"](stack)
+        assert stack.pop() == 3
+
+    def test_float_from_int(self, stack):
+        stack.push(42)
+        WORDS["float"](stack)
+        assert stack.pop() == 42.0
+
+    def test_str_from_list(self, stack):
+        stack.push([1, 2, 3])
+        WORDS["str"](stack)
+        assert stack.pop() == "[1, 2, 3]"
+
+    def test_bool_from_empty_list(self, stack):
+        stack.push([])
+        WORDS["bool"](stack)
+        assert stack.pop() is False
+
+    def test_bool_from_nonempty_list(self, stack):
+        stack.push([1])
+        WORDS["bool"](stack)
+        assert stack.pop() is True
+
+    def test_repr_from_list(self, stack):
+        stack.push([1, 2])
+        WORDS["repr"](stack)
+        assert stack.pop() == "[1, 2]"
+
+
+class TestUncoveredBuiltins:
+    """Tests for builtins with lower coverage."""
+
+    def test_take_on_string(self, stack):
+        stack.push(3, "hello")
+        WORDS["take"](stack)
+        assert stack.pop() == "hel"
+
+    def test_drop_on_string(self, stack):
+        stack.push(2, "hello")
+        WORDS["drop_"](stack)
+        assert stack.pop() == "llo"
+
+    def test_drop_on_list(self, stack):
+        stack.push(2, [1, 2, 3, 4])
+        WORDS["drop_"](stack)
+        assert stack.pop() == [3, 4]
+
+    def test_dipd(self, stack):
+        # X Y [P] -> ... X Y
+        stack.push(1, 2, 3)
+        stack.push([10, WORDS["+"]])  # Add 10 to bottom value
+        WORDS["dipd"](stack)
+        assert list(stack) == [11, 2, 3]
+
+    def test_tri(self, stack):
+        # X [P] [Q] [R] -> ... (apply P, Q, R to X)
+        stack.push(5)
+        stack.push([WORDS["dup"], WORDS["*"]])  # P: square
+        stack.push([2, WORDS["*"]])  # Q: double
+        stack.push([1, WORDS["+"]])  # R: increment
+        WORDS["tri"](stack)
+        # Stack should have: 25 (5*5), 10 (5*2), 6 (5+1)
+        assert list(stack) == [25, 10, 6]
+
+    def test_print(self, stack, capsys):
+        stack.push("hello")
+        WORDS["print"](stack)
+        captured = capsys.readouterr()
+        assert captured.out.strip() == "hello"
+        assert len(list(stack)) == 0  # Consumed
+
+    def test_dot_print(self, stack, capsys):
+        stack.push(42)
+        WORDS["."](stack)
+        captured = capsys.readouterr()
+        assert "42" in captured.out
+        assert len(list(stack)) == 0
+
+    def test_puts(self, stack, capsys):
+        stack.push("no newline")
+        WORDS["puts"](stack)
+        captured = capsys.readouterr()
+        assert captured.out == "no newline"  # No trailing newline
+
+    def test_show(self, stack, capsys):
+        stack.push("test")
+        WORDS["show"](stack)
+        captured = capsys.readouterr()
+        assert "test" in captured.out
+        assert stack.pop() == "test"  # Value preserved
+
+    def test_input(self, stack, monkeypatch):
+        monkeypatch.setattr("builtins.input", lambda: "user input")
+        WORDS["input"](stack)
+        assert stack.pop() == "user input"
+
+    def test_prompt(self, stack, monkeypatch, capsys):
+        monkeypatch.setattr("builtins.input", lambda p: f"response to '{p}'")
+        stack.push("Enter value: ")
+        WORDS["prompt"](stack)
+        assert stack.pop() == "response to 'Enter value: '"

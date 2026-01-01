@@ -1,0 +1,50 @@
+# PyJoy2 Benchmark Suite
+# Run with: make profile FILE=examples/benchmark.joy
+
+# --- Fibonacci via binrec (small n) ---
+15
+[2 <] []
+[dup 1 - swap 2 -]
+[+]
+binrec
+pop
+
+# --- Quicksort via binrec ---
+[25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1]
+[small] [] [uncons [over >] partition] [enconcat] binrec
+pop
+
+# --- map/filter/fold pipeline ---
+100 range
+[dup *] map
+[2 mod 0 =] filter
+0 [+] fold
+pop
+
+# --- Factorial via linrec ---
+12
+[0 <=] [pop 1]
+[dup 1 -]
+[*]
+linrec
+pop
+
+# --- primrec (sum of 1..50) ---
+50
+[0]
+[+]
+primrec
+pop
+
+# --- while loop countdown ---
+1000 [dup 0 >] [1 -] while
+pop
+
+# --- List operations ---
+200 range
+[1 +] map
+reverse
+first
+pop
+
+# Done

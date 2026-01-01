@@ -4,13 +4,13 @@ This document compares pyjoy2 with the original Joy programming language, highli
 
 ## Overview
 
-| Aspect | Joy | pyjoy2 |
-|--------|-----|--------|
-| Creator | Manfred von Thun | - |
-| Implementation | C | Python |
-| Type System | Dynamic, Joy-specific types | Dynamic, any Python object |
-| Interop | Limited | Full Python integration |
-| REPL | Basic | Hybrid Joy/Python |
+| Aspect          | Joy                | pyjoy2                     |
+|-----------------|--------------------|----------------------------|
+| Creator         | Manfred von Thun   | -                          |
+| Implementation  | C                  | Python                     |
+| Type System     | Dynamic, Joy types | Dynamic, Python object     |
+| Interop         | Limited            | Full Python integration    |
+| REPL            | Basic              | Hybrid Joy/Python          |
 
 ## Syntax Comparison
 
@@ -29,16 +29,16 @@ Most core Joy syntax is preserved in pyjoy2:
 
 ### Literals
 
-| Type | Joy | pyjoy2 |
-|------|-----|--------|
-| Integers | `42`, `-7` | `42`, `-7` |
-| Floats | `3.14` | `3.14`, `1e-5` |
-| Strings | `"hello"` | `"hello"` (with escapes) |
-| Booleans | `true`, `false` | `true`, `false` |
-| Null | - | `nil`, `null` |
-| Lists | `[1 2 3]` | `[1 2 3]` |
-| Sets | `{1 2 3}` | `{1 2 3}` |
-| Characters | `'a` | Not supported |
+| Type        | Joy             | pyjoy2                    |
+|-------------|-----------------|---------------------------|
+| Integers    | `42`, `-7`      | `42`, `-7`                |
+| Floats      | `3.14`          | `3.14`, `1e-5`            |
+| Strings     | `"hello"`       | `"hello"` (with escapes)  |
+| Booleans    | `true`, `false` | `true`, `false`           |
+| Null        | -               | `nil`, `null`             |
+| Lists       | `[1 2 3]`       | `[1 2 3]`                 |
+| Sets        | `{1 2 3}`       | `{1 2 3}`                 |
+| Characters  | `'a`            | Not supported             |
 
 ### Quotations
 

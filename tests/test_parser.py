@@ -246,3 +246,62 @@ class TestParseError:
         err = ParseError("msg", line=3, col=7)
         assert err.line == 3
         assert err.col == 7
+
+
+class TestParserEdgeCases:
+    """Tests for parser edge cases."""
+
+    def test_parse_define_syntax(self):
+        # == should be skipped
+        program = parse("foo == bar")
+        # 'foo' and 'bar' should be parsed, '==' skipped
+        assert "foo" in program or any(
+            callable(x) and getattr(x, "joy_word", None) == "foo" for x in program
+        )
+
+    def test_resolve_undefined_in_nested_quotation(self):
+        # Should raise NameError for undefined word in nested quotation
+        with pytest.raises(NameError, match="Undefined word"):
+            parse_and_resolve("[undefined_nested_word]")
+
+    def test_parse_empty_input(self):
+        program = parse("")
+        assert program == []
+
+    def test_parse_only_whitespace(self):
+        program = parse("   \n\t  ")
+        assert program == []
+
+    def test_parse_only_comments(self):
+        program = parse("(* comment *) # another comment")
+        assert program == []
+
+    def test_tokenize_multiline(self):
+        tokens = list(tokenize("1\n2\n3"))
+        values = [t.value for t in tokens]
+        assert values == [1, 2, 3]
+        # Check line numbers
+        assert tokens[0].line == 1
+        assert tokens[1].line == 2
+        assert tokens[2].line == 3
+
+    def test_unexpected_token_type(self):
+        # Create a token with an unexpected type to trigger ParseError
+        from pyjoy2.parser import _parse_term
+
+        fake_token = Token(type="UNKNOWN_TYPE", value="?", line=1, col=1)
+        with pytest.raises(ParseError, match="Unexpected token"):
+            _parse_term([fake_token], 0)
+
+    def test_parse_and_resolve_with_known_word(self):
+        # Test that parse_and_resolve correctly resolves known words in quotations
+        # This specifically tests line 215 where a string word IS in WORDS
+        program = parse_and_resolve("[dup pop swap]")
+        assert len(program) == 1
+        inner = program[0]
+        assert len(inner) == 3
+        # All should be resolved to functions
+        assert all(callable(w) for w in inner)
+        assert inner[0] is WORDS["dup"]
+        assert inner[1] is WORDS["pop"]
+        assert inner[2] is WORDS["swap"]
