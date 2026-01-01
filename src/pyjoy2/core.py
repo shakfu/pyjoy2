@@ -6,7 +6,6 @@ A practical, Pythonic concatenative language.
 
 from __future__ import annotations
 from typing import Callable, Any, cast
-from functools import wraps
 import inspect
 
 __all__ = ["Stack", "WORDS", "word", "define", "execute", "Word"]
@@ -102,7 +101,6 @@ def word(f: Callable[..., Any]) -> Word:
 
     Arguments are automatically popped from the stack (right-to-left).
     Return value (if not None) is pushed onto the stack.
-    If return is a tuple, all items are pushed.
 
     Example:
         @word
@@ -115,32 +113,62 @@ def word(f: Callable[..., Any]) -> Word:
     n_params = len(sig.parameters)
     func_name = cast(str, getattr(f, "__name__", "<unknown>"))
 
-    @wraps(f)
-    def wrapper(stack: Stack) -> None:
-        if n_params > 0:
-            if len(stack) < n_params:
-                raise IndexError(
-                    f"{func_name}: needs {n_params} args, stack has {len(stack)}"
-                )
-            # Pop args (they come off in reverse order)
-            args = stack.pop(n_params)
-            if n_params == 1:
-                args = (args,)
-            # Reverse to get correct order for function call
-            args = args[::-1]
-        else:
-            args = ()
+    # Check for stack underflow
+    def _check(stack: Stack) -> None:
+        if len(stack) < n_params:
+            raise IndexError(
+                f"{func_name}: needs {n_params} args, stack has {len(stack)}"
+            )
 
-        result = f(*args)
+    # Generate specialized wrapper based on param count
+    if n_params == 0:
 
-        if result is not None:
-            if isinstance(result, tuple) and getattr(wrapper, "_push_tuple", False):
-                # Push each element of tuple
-                for item in result:
-                    stack.push(item)
-            else:
+        def wrapper(stack: Stack) -> None:
+            result = f()
+            if result is not None:
                 stack.push(result)
 
+    elif n_params == 1:
+
+        def wrapper(stack: Stack) -> None:
+            _check(stack)
+            a = list.pop(stack)
+            result = f(a)
+            if result is not None:
+                stack.push(result)
+
+    elif n_params == 2:
+
+        def wrapper(stack: Stack) -> None:
+            _check(stack)
+            b = list.pop(stack)
+            a = list.pop(stack)
+            result = f(a, b)
+            if result is not None:
+                stack.push(result)
+
+    elif n_params == 3:
+
+        def wrapper(stack: Stack) -> None:
+            _check(stack)
+            c = list.pop(stack)
+            b = list.pop(stack)
+            a = list.pop(stack)
+            result = f(a, b, c)
+            if result is not None:
+                stack.push(result)
+
+    else:
+        # Fallback for 4+ params (rare)
+        def wrapper(stack: Stack) -> None:
+            _check(stack)
+            args = tuple(list.pop(stack) for _ in range(n_params))[::-1]
+            result = f(*args)
+            if result is not None:
+                stack.push(result)
+
+    wrapper.__name__ = func_name
+    wrapper.__doc__ = f.__doc__
     wrapper._is_word = True  # type: ignore[attr-defined]
     wrapper._n_params = n_params  # type: ignore[attr-defined]
 
@@ -169,15 +197,12 @@ def define(name: str | None = None) -> Callable[[Callable[..., Any]], Word]:
     def decorator(f: Callable[..., Any]) -> Word:
         word_name = name or cast(str, getattr(f, "__name__", "<unknown>"))
 
-        @wraps(f)
-        def wrapper(stack: Stack) -> None:
-            return f(stack)
+        # Set attributes directly on f, register without wrapper
+        f._is_word = True  # type: ignore[attr-defined]
+        f.joy_word = word_name  # type: ignore[attr-defined]
 
-        wrapper._is_word = True  # type: ignore[attr-defined]
-        wrapper.joy_word = word_name  # type: ignore[attr-defined]
-
-        WORDS[word_name] = wrapper
-        return wrapper
+        WORDS[word_name] = f
+        return f
 
     return decorator
 

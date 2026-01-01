@@ -394,21 +394,21 @@ def cons(x, seq):
     return [x] + list(seq)
 
 
-@word
-def uncons(seq):
+@define("uncons")
+def _uncons(s: Stack):
     """[X ...] -> X [...] : Split first and rest."""
+    seq = s.pop()
     if isinstance(seq, (list, tuple)):
-        return (seq[0], list(seq[1:]))
+        s.push(seq[0])
+        s.push(list(seq[1:]))
     elif isinstance(seq, str):
-        return (seq[0], seq[1:])
+        s.push(seq[0])
+        s.push(seq[1:])
     else:
         it = iter(seq)
         first = next(it)
-        return (first, list(it))
-
-
-# Mark to push tuple elements separately
-uncons._push_tuple = True  # type: ignore[attr-defined]
+        s.push(first)
+        s.push(list(it))
 
 
 @word

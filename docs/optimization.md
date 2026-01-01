@@ -1,6 +1,6 @@
 # PyJoy2 Optimization Analysis
 
-This document captures profiling results and potential optimization opportunities for PyJoy2.
+This document captures profiling results and optimization work for PyJoy2.
 
 ## Profiling Setup
 
@@ -11,47 +11,99 @@ make profile FILE=examples/benchmark.joy
 
 The benchmark exercises: fibonacci (binrec), quicksort (binrec), map/filter/fold, factorial (linrec), primrec, while loops, and list operations.
 
-## Profile Results
+## Implemented Optimizations
 
-From a typical benchmark run (~224k function calls, 52ms total):
+### 1. `@define` Direct Registration
 
-| Function | Calls | Cumulative Time | Description |
-|----------|-------|-----------------|-------------|
-| `core.py:wrapper` (@define) | 3,426 | 42ms | Decorator wrapper overhead |
-| `core.py:execute` | 7,894 | 35ms | Main execution loop |
-| `builtins.py:recurse` (binrec) | 2,022 | 29ms | Binary recursion |
-| `core.py:wrapper` (@word) | 7,970 | 21ms | Auto-pop decorator wrapper |
-| `core.py:pop` | 13,858 | 12ms | Stack pop operations |
-| `builtins.py:_while` | 1 | 10ms | While loop combinator |
-
-## Identified Hotspots
-
-### 1. `@define` Wrapper Overhead
-
-The `@define` decorator creates a wrapper that just forwards to the original function:
-
+**Before:** The decorator created a wrapper that just forwarded calls:
 ```python
-# core.py:172-174
 def wrapper(stack: Stack) -> None:
-    return f(stack)  # Pure indirection, no added value at runtime
+    return f(stack)  # Pure indirection
 ```
 
-**Opportunity:** Register `f` directly without wrapping.
+**After:** Register `f` directly, set attributes on `f` itself:
+```python
+f._is_word = True
+f.joy_word = word_name
+WORDS[word_name] = f
+return f
+```
 
-### 2. `@word` Wrapper Complexity
+**Impact:** Eliminated 3,426 wrapper calls per benchmark run.
 
-The `@word` decorator does significant work per call:
-- Checks if `n_params > 0`
-- Validates stack has enough elements
-- Pops args via generator expression creating a tuple
-- Reverses args for correct order
-- Calls the underlying function
-- Checks if result is not None
-- Checks if result is tuple for multi-push
+### 2. `@word` Specialized Wrappers
 
-For simple builtins like `+`, `-`, `*`, `/`, this overhead is significant relative to the actual operation.
+**Before:** One generic wrapper handling all cases:
+- Checked `n_params > 0`
+- Used `stack.pop(n)` creating tuples
+- Reversed args with `args[::-1]`
+- Unpacked with `f(*args)`
 
-### 3. Stack Copying in Combinators
+**After:** Generate specialized wrappers for 0, 1, 2, 3 params:
+```python
+# Example for 2 params
+def wrapper(stack: Stack) -> None:
+    _check(stack)
+    b = list.pop(stack)
+    a = list.pop(stack)
+    result = f(a, b)
+    if result is not None:
+        stack.push(result)
+```
+
+**Impact:**
+- No tuple creation or reversal
+- Direct `list.pop()` bypasses `Stack.pop()` method overhead
+- 48% reduction in wrapper time
+
+## Performance Results
+
+### Before Optimization
+```
+~224k function calls, 52ms total
+
+| Function                    | Calls  | Time |
+|-----------------------------|--------|------|
+| core.py:wrapper (@define)   | 3,426  | 42ms |
+| core.py:execute             | 7,894  | 35ms |
+| builtins.py:recurse         | 2,022  | 29ms |
+| core.py:wrapper (@word)     | 7,970  | 21ms |
+| core.py:pop                 | 13,858 | 12ms |
+```
+
+### After Optimization
+```
+~179k function calls, 40ms total
+
+| Function                    | Calls  | Time |
+|-----------------------------|--------|------|
+| core.py:execute             | 7,894  | 24ms |
+| builtins.py:recurse         | 2,022  | 21ms |
+| core.py:wrapper (@word)     | 7,869  | 11ms |
+| builtins.py:_while          | 1      | 8ms  |
+| core.py:_check              | 7,946  | 2ms  |
+| core.py:pop                 | 5,912  | 2ms  |
+```
+
+### Summary
+
+| Metric | Before | After | Change |
+|--------|--------|-------|--------|
+| Function calls | 223,801 | 178,894 | **-20%** |
+| Total time | 52ms | 40ms | **-23%** |
+| `@word` wrapper | 21ms | 11ms | **-48%** |
+| `Stack.pop` calls | 13,858 | 5,912 | **-57%** |
+
+## Remaining Optimization Opportunities
+
+| Optimization | Effort | Impact | Risk |
+|--------------|--------|--------|------|
+| Avoid stack copy in `while`/`binrec` | Medium | High for loops | Medium |
+| Pre-resolve words in quotations | Medium | Medium | Low |
+| Inline simple words (`dup`, `swap`) | High | Medium | High |
+| Compile quotations to bytecode | High | High | High |
+
+### Stack Copying in Combinators
 
 Both `while` and `binrec` copy the entire stack every iteration:
 
@@ -64,18 +116,9 @@ s.clear()
 s.extend(saved)      # O(n) restore
 ```
 
-For deep stacks or many iterations, this becomes expensive.
+For deep stacks or many iterations, this becomes expensive. Could track stack depth delta instead.
 
-### 4. `Stack.pop(n)` Creates Intermediate Tuple
-
-```python
-# core.py:45
-result = tuple(list.pop(self) for _ in range(n))
-```
-
-Creates a generator and tuple for every multi-pop.
-
-### 5. `execute()` Type Checks
+### `execute()` Type Checks
 
 Every item in a quotation triggers:
 ```python
@@ -85,36 +128,11 @@ elif isinstance(program, list):
     ...
 ```
 
-## Optimization Opportunities
-
-| Optimization | Effort | Impact | Risk |
-|--------------|--------|--------|------|
-| Remove `@define` wrapper indirection | Low | Medium | Low |
-| Specialize `pop(2)`, `pop(3)` | Low | Medium | Low |
-| Avoid stack copy in `while`/`binrec` | Medium | High for loops | Medium |
-| Pre-resolve words in quotations | Medium | Medium | Low |
-| Inline simple words (`dup`, `swap`) | High | Medium | High |
-| Compile quotations to bytecode | High | High | High |
-
-### Low-Hanging Fruit
-
-1. **Direct registration for `@define`**: Store `f` in WORDS directly, set attributes on `f` itself
-2. **Specialized pop**: Add `pop2()`, `pop3()` methods that avoid tuple creation
-3. **Cache callable checks**: Mark items in quotations during parse
-
-### Medium Effort
-
-1. **Stack delta tracking**: Instead of copying entire stack, track only what the condition/body should see
-2. **Quotation compilation**: Convert quotations to a more efficient representation at parse time
-
-### High Effort (Diminishing Returns)
-
-1. **JIT-style optimization**: Inline frequently-called word sequences
-2. **Bytecode compilation**: Compile Joy to Python bytecode
+Could pre-compile quotations to avoid runtime type checks.
 
 ## Design Trade-offs
 
-The current implementation prioritizes:
+The implementation prioritizes:
 - **Readability**: Code is clear and Pythonic
 - **Debuggability**: Stack traces are meaningful
 - **Extensibility**: Easy to add new words
@@ -122,8 +140,6 @@ The current implementation prioritizes:
 
 Over:
 - **Raw performance**: Acceptable for a teaching/hobby language
-
-For most use cases, the current performance is adequate. Optimization should only be pursued if profiling shows it's needed for real workloads.
 
 ## Reproducing This Analysis
 
