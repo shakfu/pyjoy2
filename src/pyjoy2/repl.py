@@ -456,7 +456,7 @@ Defining words:
                     repr_str = repr(top)
                     if len(repr_str) > 70:
                         repr_str = repr_str[:67] + "..."
-                    print(f"  -> {repr_str}")
+                    print(repr_str)
 
             except EOFError:
                 print()
