@@ -1,0 +1,16 @@
+[project]
+name = "pyjoy2"
+version = "0.1.0"
+description = "A Pythonic re-imagining of the the Joy language"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.9.21,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
