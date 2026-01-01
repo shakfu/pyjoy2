@@ -343,18 +343,31 @@ class HybridREPL:
             print(line)
 
     def _define_word(self, defn: str) -> None:
-        """Define new word: .def name [body]"""
+        """Define new word: .def name [body]
+
+        Supports recursive definitions by registering a forward reference
+        before parsing the body.
+        """
         match = re.match(r"(\w[\w\-]*)\s+\[(.+)\]", defn)
         if not match:
             print("  Usage: .def name [body]")
             return
         name, body = match.groups()
+
+        # For recursive definitions: register forward reference first
+        # Use a mutable container to allow updating after parse
+        impl_holder: List[Any] = [[]]
+
+        def forward_ref(s: Stack, holder=impl_holder):
+            execute(s, holder[0])
+
+        WORDS[name] = forward_ref
+
+        # Now parse (recursive references will resolve to forward_ref)
         quot = self._parse_quotation(body)
 
-        def new_word(s: Stack, q=quot):
-            execute(s, q)
-
-        WORDS[name] = new_word
+        # Update the implementation
+        impl_holder[0] = quot
         print(f"  Defined: {name}")
 
     def _load_file(self, filename: str) -> None:

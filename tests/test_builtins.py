@@ -412,6 +412,31 @@ class TestListOperations:
         WORDS["sort"](stack)
         assert stack.pop() == [1, 2, 3]
 
+    def test_small_empty(self, stack):
+        stack.push([])
+        WORDS["small"](stack)
+        assert stack.pop() is True
+
+    def test_small_one(self, stack):
+        stack.push([42])
+        WORDS["small"](stack)
+        assert stack.pop() is True
+
+    def test_small_two(self, stack):
+        stack.push([1, 2])
+        WORDS["small"](stack)
+        assert stack.pop() is False
+
+    def test_enconcat(self, stack):
+        stack.push(5, [1, 2], [8, 9])
+        WORDS["enconcat"](stack)
+        assert stack.pop() == [1, 2, 5, 8, 9]
+
+    def test_enconcat_empty_lists(self, stack):
+        stack.push(42, [], [])
+        WORDS["enconcat"](stack)
+        assert stack.pop() == [42]
+
     def test_sum(self, stack):
         stack.push([1, 2, 3, 4])
         WORDS["sum"](stack)
@@ -523,6 +548,22 @@ class TestCombinators:
         stack.push([1, 2, 3, 4, 5], [2, WORDS[">"]])
         WORDS["filter"](stack)
         assert stack.pop() == [3, 4, 5]
+
+    def test_partition(self, stack):
+        stack.push([1, 2, 3, 4, 5], [3, WORDS["<"]])
+        WORDS["partition"](stack)
+        # Elements < 3 go to first list, elements >= 3 go to second
+        assert stack.pop() == [3, 4, 5]
+        assert stack.pop() == [1, 2]
+
+    def test_partition_with_pivot(self, stack):
+        # Test partition pattern used in qsort: pivot [list] [over <] partition
+        stack.push(3, [1, 2, 4, 5], [WORDS["over"], WORDS["<"]])
+        WORDS["partition"](stack)
+        # Elements < 3 (pivot) go to first list
+        assert stack.pop() == [4, 5]
+        assert stack.pop() == [1, 2]
+        assert stack.pop() == 3  # Pivot is preserved
 
     def test_fold(self, stack):
         stack.push([1, 2, 3, 4], 0, [WORDS["+"]])

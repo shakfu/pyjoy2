@@ -181,7 +181,9 @@ $(2 ** 10)          # Dollar syntax: alternative
 | `split` | Same | Same | |
 | `join` | - | [...] S -> S | String join |
 | `sort` | - | Same | |
+| `small` | Same | Same | 0 or 1 elements |
 | `sum`, `prod` | - | Same | |
+| `enconcat` | Same | Same | X [A] [B] -> [A X B] |
 
 ### Combinators
 
@@ -208,6 +210,7 @@ $(2 ** 10)          # Dollar syntax: alternative
 | `any`, `all` | - | Same | Short-circuit |
 | `zip` | - | Same | Pair lists |
 | `enumerate` | - | Same | With indices |
+| `partition` | `split` | Same | Split by predicate |
 
 ### Recursion Combinators
 
@@ -334,12 +337,34 @@ DEFINE qsort ==
 ### pyjoy2
 
 ```
-# Using Python's sort
+# Method 1: Using built-in sort (calls Python's sorted)
 [3 1 4 1 5] sort
+# => [1 1 3 4 5]
 
-# Or binrec (when implemented with split)
-# Using the built-in sort is simpler
+# Method 2: Using Python's sorted directly
+[3 1 4 1 5] `sorted(S.pop())`
+# => [1 1 3 4 5]
+
+# Method 3: Pure Joy-style quicksort using ifte
+.def qsort [
+  [small] []
+  [uncons [over <] partition qsort swap qsort swap enconcat]
+  ifte
+]
+
+[3 1 4 1 5] qsort
+# => [1 1 3 4 5]
+
+# Method 4: With custom comparator via Python
+[3 1 4 1 5] `sorted(S.pop(), reverse=True)`
+# => [5 4 3 1 1]
 ```
+
+**Notes on the pyjoy2 qsort:**
+- `small` tests if a list has 0 or 1 elements (base case)
+- `partition` splits a list by predicate: `[...] [P] -> [yes] [no]`
+- `enconcat` combines: `X [A] [B] -> [A X B...]`
+- The Joy version uses `binrec` with `split`; pyjoy2 uses `ifte` with `partition` for clarity
 
 ## Migration Tips
 

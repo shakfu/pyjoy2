@@ -423,6 +423,12 @@ WORDS["cat"] = WORDS["concat"]
 
 
 @word
+def enconcat(x, a, b):
+    """X [A] [B] -> [...] : Concatenate as A ++ [X] ++ B."""
+    return list(a) + [x] + list(b)
+
+
+@word
 def size(seq):
     """[...] -> N : Length of sequence."""
     return len(seq)
@@ -516,6 +522,12 @@ def join(seq, sep):
 def sort(seq):
     """[...] -> [...] : Sort sequence."""
     return sorted(seq)
+
+
+@word
+def small(seq):
+    """[...] -> B : True if list has 0 or 1 elements."""
+    return len(seq) <= 1
 
 
 @word
@@ -810,6 +822,29 @@ def _enumerate(s: Stack):
     """[...] -> [[N X] ...] : Enumerate with indices."""
     items = s.pop()
     s.push([[i, x] for i, x in enumerate(items)])
+
+
+@define("partition")
+def _partition(s: Stack):
+    """[...] [P] -> [...] [...] : Split list by predicate.
+
+    Elements satisfying P go to first list, others to second.
+    """
+    quot = s.pop()
+    items = s.pop()
+
+    yes = []
+    no = []
+    for item in items:
+        s.push(item)
+        execute(s, quot)
+        if s.pop():
+            yes.append(item)
+        else:
+            no.append(item)
+
+    s.push(yes)
+    s.push(no)
 
 
 # ============================================================

@@ -373,6 +373,20 @@ class TestIntegration:
         result = run("[3 1 4 1 5 9 2 6] sort")
         assert list(result) == [[1, 1, 2, 3, 4, 5, 6, 9]]
 
+    def test_recursive_qsort_definition(self):
+        # Test recursive word definition with .def
+        repl = HybridREPL()
+        repl.process_line(
+            ".def qsort [[small] [] "
+            "[uncons [over <] partition qsort swap qsort swap enconcat] ifte]"
+        )
+        repl.process_line("[3 1 4 1 5 9 2 6] qsort")
+        assert list(repl.stack) == [[1, 1, 2, 3, 4, 5, 6, 9]]
+
+        repl.process_line(".c")
+        repl.process_line("[5 4 3 2 1] qsort")
+        assert list(repl.stack) == [[1, 2, 3, 4, 5]]
+
     def test_python_and_joy_interop(self):
         result = run("`[i**2 for i in range(5)]` [10 <] filter")
         assert list(result) == [[0, 1, 4, 9]]
