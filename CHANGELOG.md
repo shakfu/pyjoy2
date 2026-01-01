@@ -9,38 +9,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Control flow combinators:
+- **Control flow combinators**:
   - `cond` - multi-way conditional with alternating `[condition] [action]` pairs
   - `case` - pattern matching with alternating `value [action]` pairs
-- Quick win words:
+- **String operations**:
+  - `chars`, `unchars` - string to/from character list
+  - `upper`, `lower` - case conversion
+  - `trim`, `ltrim`, `rtrim` - whitespace removal
+  - `starts-with?`, `ends-with?` - prefix/suffix tests
+  - `replace` - string replacement
+  - `words`, `unwords` - split/join on whitespace
+- **List operations**:
+  - `small` - test if list has 0 or 1 elements
+  - `partition` - split list by predicate
+  - `enconcat` - concatenate with element in middle
+- **Assertions**:
+  - `assert` - assert top is truthy
+  - `assert-eq` / `assert=` - assert two values equal
+- **Aliases**:
   - `id`, `nop` - no-operation (identity)
   - `inc`, `dec` - aliases for `succ`, `pred`
   - `zero?`, `pos?`, `positive?`, `neg?`, `negative?` - numeric predicates
   - `empty?` - alias for `null`
-- `.help word` REPL command - show docstring and aliases for any word
-- `lib/prelude.joy` standard library with common definitions:
+  - `clr` - alias for `clear`
+- **REPL enhancements**:
+  - `.help word` - show docstring and aliases for any word
+  - `.words pattern` / `.w pattern` - filter word list by substring
+  - Command aliases: `.show`, `.clr`, `.words`
+- **Standard library** (`lib/prelude.joy`):
   - Math: `square`, `cube`, `double`, `half`, `even?`, `odd?`, `factorial`, `gcd`, `lcm`
   - Lists: `last`, `butlast`, `second`, `third`, `singleton`, `pair`, `flatten`, `contains?`, `remove`
   - Combinators: `twice`, `thrice`, `ntimes`, `cleave2`, `cleave3`, `both`, `either`
   - Stack: `dup3`, `2dup`, `2swap`, `nip2`
-  - Patterns: `count`, `find-first`
-- New list operations for quicksort support:
-  - `small` - test if list has 0 or 1 elements
-  - `partition` - split list by predicate: `[...] [P] -> [yes] [no]`
-  - `enconcat` - concatenate with element in middle: `X [A] [B] -> [A X B...]`
-- Recursive word definitions now work correctly with `.def`
+  - Patterns: `count`, `find-first`, `default`
 - CLI script entry point: `uv run pyjoy2`
 
 ### Changed
 
-- Optimized `@define` decorator: direct registration without wrapper function
+- Optimized `@define` decorator: direct registration without wrapper
 - Optimized `@word` decorator: specialized wrappers for 0-3 params (20% fewer calls, 23% faster)
 - `.load` now supports REPL commands (like `.def`) in loaded files
 - `.def` now allows `?` in word names (e.g., `.def even? [2 % 0 =]`)
 
 ### Fixed
 
-- `.def` now supports recursive definitions by using forward references
+- `.def` now supports recursive definitions using forward references
 
 ## [0.1.0] - 2026-01-01
 

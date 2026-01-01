@@ -127,15 +127,21 @@ class HybridREPL:
             return
 
         # Handle REPL commands
-        if stripped == ".s":
+        if stripped == ".s" or stripped == ".show":
             self._show_stack()
             return
-        if stripped == ".c":
+        if stripped == ".c" or stripped == ".clr":
             self.stack.clear()
             print("  Stack cleared")
             return
-        if stripped == ".w":
+        if stripped == ".w" or stripped == ".words":
             self._show_words()
+            return
+        if stripped.startswith(".w "):
+            self._show_words(stripped[3:].strip())
+            return
+        if stripped.startswith(".words "):
+            self._show_words(stripped[7:].strip())
             return
         if stripped.startswith(".def "):
             self._define_word(stripped[5:])
@@ -329,11 +335,16 @@ class HybridREPL:
                 repr_str = repr_str[:57] + "..."
             print(f"    {i}: ({type_name}) {repr_str}")
 
-    def _show_words(self) -> None:
-        """List available words."""
+    def _show_words(self, pattern: str | None = None) -> None:
+        """List available words, optionally filtered by pattern."""
         words = sorted(WORDS.keys())
-        # Group by first character
-        print(f"  {len(words)} words available")
+        if pattern:
+            words = [w for w in words if pattern in w]
+            print(f"  {len(words)} words matching '{pattern}':")
+        else:
+            print(f"  {len(words)} words available:")
+        if not words:
+            return
         line = "  "
         for w in words:
             if len(line) + len(w) + 2 > 78:

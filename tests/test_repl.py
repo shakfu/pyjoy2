@@ -498,6 +498,20 @@ class TestREPLEdgeCases:
         captured = capsys.readouterr()
         assert "Unknown word" in captured.out
 
+    def test_words_pattern(self, capsys):
+        repl = HybridREPL()
+        repl.process_line(".words map")
+        captured = capsys.readouterr()
+        assert "map" in captured.out
+        assert "matching" in captured.out
+
+    def test_words_pattern_short(self, capsys):
+        repl = HybridREPL()
+        repl.process_line(".w dup")
+        captured = capsys.readouterr()
+        assert "dup" in captured.out
+        assert "dup2" in captured.out
+
     def test_python_variable_access(self):
         repl = HybridREPL()
         repl.process_line("!my_var = 42")

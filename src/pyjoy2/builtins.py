@@ -123,6 +123,9 @@ def _clear(s: Stack):
     s.clear()
 
 
+WORDS["clr"] = WORDS["clear"]
+
+
 @define("stack")
 def _stack(s: Stack):
     """... -> ... [...] : Push copy of stack as list."""
@@ -591,6 +594,89 @@ def prod(seq):
     for x in seq:
         result *= x
     return result
+
+
+# ============================================================
+# String Operations
+# ============================================================
+
+
+@word
+def chars(s):
+    """S -> [C...] : String to list of characters."""
+    return list(s)
+
+
+@word
+def unchars(lst):
+    """[C...] -> S : List of characters to string."""
+    return "".join(str(c) for c in lst)
+
+
+@word
+def upper(s):
+    """S -> S : Convert to uppercase."""
+    return s.upper()
+
+
+@word
+def lower(s):
+    """S -> S : Convert to lowercase."""
+    return s.lower()
+
+
+@word
+def trim(s):
+    """S -> S : Remove leading/trailing whitespace."""
+    return s.strip()
+
+
+@word
+def ltrim(s):
+    """S -> S : Remove leading whitespace."""
+    return s.lstrip()
+
+
+@word
+def rtrim(s):
+    """S -> S : Remove trailing whitespace."""
+    return s.rstrip()
+
+
+@word
+def starts_with(s, prefix):
+    """S P -> B : True if S starts with prefix P."""
+    return s.startswith(prefix)
+
+
+WORDS["starts-with?"] = WORDS["starts_with"]
+
+
+@word
+def ends_with(s, suffix):
+    """S X -> B : True if S ends with suffix X."""
+    return s.endswith(suffix)
+
+
+WORDS["ends-with?"] = WORDS["ends_with"]
+
+
+@word
+def replace(s, old, new):
+    """S OLD NEW -> S : Replace all occurrences."""
+    return s.replace(old, new)
+
+
+@word
+def words(s):
+    """S -> [S...] : Split string on whitespace."""
+    return s.split()
+
+
+@word
+def unwords(lst):
+    """[S...] -> S : Join strings with spaces."""
+    return " ".join(str(x) for x in lst)
 
 
 # ============================================================
@@ -1187,6 +1273,31 @@ def _pop2(s: Stack):
     """X Y -> : Remove top two."""
     s.pop()
     s.pop()
+
+
+# ============================================================
+# Assertions
+# ============================================================
+
+
+@define("assert")
+def _assert(s: Stack):
+    """B -> : Assert top is true, raise error if false."""
+    value = s.pop()
+    if not value:
+        raise AssertionError("assertion failed")
+
+
+@define("assert-eq")
+def _assert_eq(s: Stack):
+    """X Y -> : Assert X equals Y."""
+    y = s.pop()
+    x = s.pop()
+    if x != y:
+        raise AssertionError(f"assertion failed: {x!r} != {y!r}")
+
+
+WORDS["assert="] = WORDS["assert-eq"]
 
 
 # ============================================================

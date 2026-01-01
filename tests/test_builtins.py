@@ -448,6 +448,80 @@ class TestListOperations:
         assert stack.pop() == 24
 
 
+class TestStringOperations:
+    """Tests for string operation words."""
+
+    def test_chars(self, stack):
+        stack.push("hello")
+        WORDS["chars"](stack)
+        assert stack.pop() == ["h", "e", "l", "l", "o"]
+
+    def test_unchars(self, stack):
+        stack.push(["h", "e", "l", "l", "o"])
+        WORDS["unchars"](stack)
+        assert stack.pop() == "hello"
+
+    def test_upper(self, stack):
+        stack.push("hello")
+        WORDS["upper"](stack)
+        assert stack.pop() == "HELLO"
+
+    def test_lower(self, stack):
+        stack.push("HELLO")
+        WORDS["lower"](stack)
+        assert stack.pop() == "hello"
+
+    def test_trim(self, stack):
+        stack.push("  hello  ")
+        WORDS["trim"](stack)
+        assert stack.pop() == "hello"
+
+    def test_ltrim(self, stack):
+        stack.push("  hello  ")
+        WORDS["ltrim"](stack)
+        assert stack.pop() == "hello  "
+
+    def test_rtrim(self, stack):
+        stack.push("  hello  ")
+        WORDS["rtrim"](stack)
+        assert stack.pop() == "  hello"
+
+    def test_starts_with(self, stack):
+        stack.push("hello", "hel")
+        WORDS["starts_with"](stack)
+        assert stack.pop() is True
+
+    def test_starts_with_false(self, stack):
+        stack.push("hello", "xyz")
+        WORDS["starts-with?"](stack)
+        assert stack.pop() is False
+
+    def test_ends_with(self, stack):
+        stack.push("hello", "llo")
+        WORDS["ends_with"](stack)
+        assert stack.pop() is True
+
+    def test_ends_with_false(self, stack):
+        stack.push("hello", "xyz")
+        WORDS["ends-with?"](stack)
+        assert stack.pop() is False
+
+    def test_replace(self, stack):
+        stack.push("hello world", "world", "there")
+        WORDS["replace"](stack)
+        assert stack.pop() == "hello there"
+
+    def test_words(self, stack):
+        stack.push("hello world foo")
+        WORDS["words"](stack)
+        assert stack.pop() == ["hello", "world", "foo"]
+
+    def test_unwords(self, stack):
+        stack.push(["hello", "world", "foo"])
+        WORDS["unwords"](stack)
+        assert stack.pop() == "hello world foo"
+
+
 class TestCombinators:
     """Tests for combinator words."""
 
@@ -1007,3 +1081,44 @@ class TestQuickWins:
 
         WORDS["nop"](stack)
         assert list(stack) == [1, 2, 3]
+
+    def test_clr_alias(self, stack):
+        stack.push(1, 2, 3)
+        WORDS["clr"](stack)
+        assert list(stack) == []
+
+
+class TestAssertions:
+    """Tests for assertion words."""
+
+    def test_assert_true(self, stack):
+        stack.push(True)
+        WORDS["assert"](stack)
+        assert list(stack) == []
+
+    def test_assert_false_raises(self, stack):
+        stack.push(False)
+        with pytest.raises(AssertionError):
+            WORDS["assert"](stack)
+
+    def test_assert_truthy(self, stack):
+        stack.push(1)
+        WORDS["assert"](stack)
+        assert list(stack) == []
+
+    def test_assert_eq_equal(self, stack):
+        stack.push(5, 5)
+        WORDS["assert-eq"](stack)
+        assert list(stack) == []
+
+    def test_assert_eq_not_equal_raises(self, stack):
+        stack.push(5, 6)
+        with pytest.raises(AssertionError) as exc_info:
+            WORDS["assert-eq"](stack)
+        assert "5" in str(exc_info.value)
+        assert "6" in str(exc_info.value)
+
+    def test_assert_eq_alias(self, stack):
+        stack.push(3, 3)
+        WORDS["assert="](stack)
+        assert list(stack) == []

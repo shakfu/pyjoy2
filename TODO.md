@@ -1,4 +1,4 @@
-# pyjoy2 TODO
+# TODO
 
 Prioritized enhancements to make pyjoy2 more valuable and usable.
 
@@ -17,7 +17,7 @@ Prioritized enhancements to make pyjoy2 more valuable and usable.
 
 ### Word Documentation
 - [x] `.help word` to show docstring for any word
-- [ ] `.words pattern` to filter word list (e.g., `.words map` shows map-related)
+- [x] `.words pattern` to filter word list (e.g., `.words map` shows map-related)
 - [ ] Include stack effect signatures in `.w` output
 
 ## Priority 2: Language Completeness
@@ -32,10 +32,10 @@ Prioritized enhancements to make pyjoy2 more valuable and usable.
 - [x] `case` - pattern matching on values
 
 ### String Operations
-- [ ] `chars` - string to list of characters
-- [ ] `unchars` - list of characters to string
+- [x] `chars` - string to list of characters
+- [x] `unchars` - list of characters to string
 - [ ] `format` - string formatting with stack values
-- [ ] `upper`, `lower`, `trim` - common string operations
+- [x] `upper`, `lower`, `trim` - common string operations
 
 ### Set Operations
 - [ ] `union`, `intersection`, `difference`
@@ -57,7 +57,7 @@ Prioritized enhancements to make pyjoy2 more valuable and usable.
 - [ ] Standard library directory (~/.pyjoy2/lib/)
 
 ### Testing Support
-- [ ] `assert` word for inline assertions
+- [x] `assert` word for inline assertions
 - [ ] `.test file` - run tests from a Joy file
 - [ ] Test runner that checks expected stack results
 
@@ -108,8 +108,8 @@ Prioritized enhancements to make pyjoy2 more valuable and usable.
 
 ## Quick Wins (Low Effort, High Value)
 
-- [ ] `show` - print without popping (already exists, but add `.show` alias)
-- [ ] `clr` alias for `clear`
+- [x] `show` - print without popping (already exists, but add `.show` alias)
+- [x] `clr` alias for `clear`
 - [x] `id` or `nop` - no-operation word
 - [x] `dup2`, `pop2` - operate on pairs (already implemented)
 - [x] `neg?`, `pos?`, `zero?` - numeric predicates
@@ -119,7 +119,7 @@ Prioritized enhancements to make pyjoy2 more valuable and usable.
 ## Notes
 
 ### Design Principles
-1. **Python-first**: When in doubt, use Python semantics and stick to the Python zen
+1. **Python-first**: When in doubt, use Python semantics and stick to the Zen of Python 
 2. **Practical over pure**: Pragmatic features over theoretical purity
 3. **Interop is key**: Make it trivial to use Python libraries
 4. **Discoverable**: Good error messages and help system
