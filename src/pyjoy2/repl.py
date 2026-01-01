@@ -349,7 +349,7 @@ class HybridREPL:
         Supports recursive definitions by registering a forward reference
         before parsing the body.
         """
-        match = re.match(r"(\w[\w\-]*)\s+\[(.+)\]", defn)
+        match = re.match(r"(\w[\w\-\?]*)\s+\[(.+)\]", defn)
         if not match:
             print("  Usage: .def name [body]")
             return
@@ -372,12 +372,14 @@ class HybridREPL:
         print(f"  Defined: {name}")
 
     def _load_file(self, filename: str) -> None:
-        """Load and execute a Joy file."""
+        """Load and execute a Joy file (supports REPL commands like .def)."""
         try:
             with open(filename) as f:
-                source = f.read()
-            program = parse(source)
-            self._execute_program(program)
+                lines = f.readlines()
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    self.process_line(line)
             print(f"  Loaded: {filename}")
         except FileNotFoundError:
             print(f"  Error: file not found: {filename}")

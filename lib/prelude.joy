@@ -1,0 +1,121 @@
+# pyjoy2 standard prelude
+# Load with: .load lib/prelude.joy
+
+# ============================================================
+# Mathematical
+# ============================================================
+
+.def square [dup *]
+.def cube [dup dup * *]
+.def double [2 *]
+.def half [2 /]
+.def even? [2 % 0 =]
+.def odd? [2 % 1 =]
+.def divides? [% 0 =]
+
+# factorial: N -> N!
+.def factorial [1 [*] primrec]
+
+# gcd using Euclidean algorithm: A B -> gcd(A,B)
+.def gcd [[0 >] [dup rollup %] while pop]
+
+# lcm: A B -> lcm(A,B)
+.def lcm [dup2 gcd rolldown * swap /]
+
+# ============================================================
+# List utilities
+# ============================================================
+
+# last element: [A] -> X
+.def last [dup size 1 - at]
+
+# all but last: [A] -> [B]
+.def butlast [dup size 1 - take]
+
+# second element: [A] -> X
+.def second [1 at]
+
+# third element: [A] -> X
+.def third [2 at]
+
+# replicate: N X -> [X X ... X]
+.def replicate [swap [] swap [[swap dup rolldown cons swap] dip 1 -] [dup 0 >] while pop swap pop]
+
+# singleton: X -> [X]
+.def singleton [[] cons]
+
+# pair: X Y -> [X Y]
+.def pair [[] cons cons]
+
+# unpair: [X Y] -> X Y
+.def unpair [uncons first]
+
+# flatten one level: [[A] [B] ...] -> [A B ...]
+.def flatten [[] [concat] fold]
+
+# sum of squares: [N] -> N
+.def sum-of-squares [[square] map sum]
+
+# ============================================================
+# Combinators
+# ============================================================
+
+# apply quotation twice: X [P] -> ...
+.def twice [dup dip i]
+
+# apply quotation three times: X [P] -> ...
+.def thrice [dup dip twice]
+
+# apply quotation n times: X N [P] -> ...
+.def ntimes [swap times]
+
+# cleave2: apply two quotations to same value: X [P] [Q] -> P(X) Q(X)
+.def cleave2 [[keep] dip i]
+
+# cleave3: apply three quotations to same value
+.def cleave3 [[[keep] dip keep] dip i]
+
+# both: test if both predicates true: X [P] [Q] -> bool
+.def both [cleave2 and]
+
+# either: test if either predicate true: X [P] [Q] -> bool
+.def either [cleave2 or]
+
+# ============================================================
+# Stack utilities
+# ============================================================
+
+# dup3: X -> X X X
+.def dup3 [dup dup]
+
+# 2dup: X Y -> X Y X Y
+.def 2dup [over over]
+
+# 2swap: A B C D -> C D A B
+.def 2swap [rolldown swap rollup swap]
+
+# nip2: A B C -> C
+.def nip2 [nip nip]
+
+# ============================================================
+# Control flow
+# ============================================================
+
+# default: use value if top is null/empty: X default -> X or default
+.def default [swap dup null [pop] [swap pop] ifte]
+
+# ============================================================
+# Common patterns
+# ============================================================
+
+# count matching: [A] [P] -> N
+.def count [filter size]
+
+# find first matching: [A] [P] -> X (or empty list if none)
+.def find-first [filter [null] [first] [] ifte]
+
+# contains?: [A] X -> bool
+.def contains? [[] cons [=] concat any]
+
+# remove: [A] X -> [A'] (remove all occurrences)
+.def remove [[] cons [=] concat [not] compose filter]

@@ -42,7 +42,7 @@ typecheck:
 
 # Profiling targets
 # Usage: make profile EXPR="[1 2 3 4 5] [dup *] map"
-#        make profile FILE=examples/benchmark.joy
+#        make profile FILE=lib/benchmark.joy
 EXPR ?= 1000 [1 -] [dup 0 >] while pop
 FILE ?=
 

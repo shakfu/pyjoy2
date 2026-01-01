@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `zero?`, `pos?`, `positive?`, `neg?`, `negative?` - numeric predicates
   - `empty?` - alias for `null`
 - `.help word` REPL command - show docstring and aliases for any word
+- `lib/prelude.joy` standard library with common definitions:
+  - Math: `square`, `cube`, `double`, `half`, `even?`, `odd?`, `factorial`, `gcd`, `lcm`
+  - Lists: `last`, `butlast`, `second`, `third`, `singleton`, `pair`, `flatten`, `contains?`, `remove`
+  - Combinators: `twice`, `thrice`, `ntimes`, `cleave2`, `cleave3`, `both`, `either`
+  - Stack: `dup3`, `2dup`, `2swap`, `nip2`
+  - Patterns: `count`, `find-first`
 - New list operations for quicksort support:
   - `small` - test if list has 0 or 1 elements
   - `partition` - split list by predicate: `[...] [P] -> [yes] [no]`
@@ -29,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Optimized `@define` decorator: direct registration without wrapper function
 - Optimized `@word` decorator: specialized wrappers for 0-3 params (20% fewer calls, 23% faster)
+- `.load` now supports REPL commands (like `.def`) in loaded files
+- `.def` now allows `?` in word names (e.g., `.def even? [2 % 0 =]`)
 
 ### Fixed
 
