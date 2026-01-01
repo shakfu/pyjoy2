@@ -524,6 +524,93 @@ class TestCombinators:
         WORDS["unless"](stack)
         assert list(stack) == [5]
 
+    def test_cond_first_match(self, stack):
+        # Test negative case
+        stack.push(-5)
+        clauses = [
+            [0, WORDS["<"]], ["negative"],
+            [0, WORDS["="]], ["zero"],
+            [True], ["positive"],
+        ]
+        stack.push(clauses)
+        WORDS["cond"](stack)
+        assert list(stack) == [-5, "negative"]
+
+    def test_cond_second_match(self, stack):
+        # Test zero case
+        stack.push(0)
+        clauses = [
+            [0, WORDS["<"]], ["negative"],
+            [0, WORDS["="]], ["zero"],
+            [True], ["positive"],
+        ]
+        stack.push(clauses)
+        WORDS["cond"](stack)
+        assert list(stack) == [0, "zero"]
+
+    def test_cond_default(self, stack):
+        # Test positive (default) case
+        stack.push(5)
+        clauses = [
+            [0, WORDS["<"]], ["negative"],
+            [0, WORDS["="]], ["zero"],
+            [True], ["positive"],
+        ]
+        stack.push(clauses)
+        WORDS["cond"](stack)
+        assert list(stack) == [5, "positive"]
+
+    def test_cond_no_match(self, stack):
+        # No condition matches, stack unchanged
+        stack.push(5)
+        clauses = [
+            [0, WORDS["<"]], ["negative"],
+            [0, WORDS["="]], ["zero"],
+        ]
+        stack.push(clauses)
+        WORDS["cond"](stack)
+        assert list(stack) == [5]
+
+    def test_case_first_match(self, stack):
+        # Match first clause - action consumes value with pop
+        stack.push(1)
+        clauses = [1, [WORDS["pop"], "one"], 2, [WORDS["pop"], "two"], 3, [WORDS["pop"], "three"]]
+        stack.push(clauses)
+        WORDS["case"](stack)
+        assert list(stack) == ["one"]
+
+    def test_case_second_match(self, stack):
+        # Match second clause - action consumes value with pop
+        stack.push(2)
+        clauses = [1, [WORDS["pop"], "one"], 2, [WORDS["pop"], "two"], 3, [WORDS["pop"], "three"]]
+        stack.push(clauses)
+        WORDS["case"](stack)
+        assert list(stack) == ["two"]
+
+    def test_case_string_match(self, stack):
+        # Match on strings - action consumes value with pop
+        stack.push("foo")
+        clauses = ["bar", [WORDS["pop"], 1], "foo", [WORDS["pop"], 2], "baz", [WORDS["pop"], 3]]
+        stack.push(clauses)
+        WORDS["case"](stack)
+        assert list(stack) == [2]
+
+    def test_case_no_match(self, stack):
+        # No match - value stays on stack
+        stack.push(99)
+        clauses = [1, ["one"], 2, ["two"], 3, ["three"]]
+        stack.push(clauses)
+        WORDS["case"](stack)
+        assert list(stack) == [99]
+
+    def test_case_with_action(self, stack):
+        # Action that uses stack
+        stack.push(10, 2)
+        clauses = [1, [WORDS["pop"]], 2, [WORDS["dup"], WORDS["*"]]]
+        stack.push(clauses)
+        WORDS["case"](stack)
+        assert list(stack) == [10, 4]
+
     def test_times(self, stack):
         stack.push(0, 5, [1, WORDS["+"]])
         WORDS["times"](stack)
@@ -854,3 +941,69 @@ class TestUncoveredBuiltins:
         stack.push("Enter value: ")
         WORDS["prompt"](stack)
         assert stack.pop() == "response to 'Enter value: '"
+
+
+class TestQuickWins:
+    """Tests for quick win additions."""
+
+    def test_inc(self, stack):
+        stack.push(5)
+        WORDS["inc"](stack)
+        assert stack.pop() == 6
+
+    def test_dec(self, stack):
+        stack.push(5)
+        WORDS["dec"](stack)
+        assert stack.pop() == 4
+
+    def test_zero_predicate(self, stack):
+        stack.push(0)
+        WORDS["zero?"](stack)
+        assert stack.pop() is True
+
+        stack.push(5)
+        WORDS["zero?"](stack)
+        assert stack.pop() is False
+
+    def test_pos_predicate(self, stack):
+        stack.push(5)
+        WORDS["pos?"](stack)
+        assert stack.pop() is True
+
+        stack.push(-5)
+        WORDS["pos?"](stack)
+        assert stack.pop() is False
+
+        stack.push(0)
+        WORDS["positive?"](stack)
+        assert stack.pop() is False
+
+    def test_neg_predicate(self, stack):
+        stack.push(-5)
+        WORDS["neg?"](stack)
+        assert stack.pop() is True
+
+        stack.push(5)
+        WORDS["neg?"](stack)
+        assert stack.pop() is False
+
+        stack.push(0)
+        WORDS["negative?"](stack)
+        assert stack.pop() is False
+
+    def test_empty_predicate(self, stack):
+        stack.push([])
+        WORDS["empty?"](stack)
+        assert stack.pop() is True
+
+        stack.push([1, 2])
+        WORDS["empty?"](stack)
+        assert stack.pop() is False
+
+    def test_id_nop(self, stack):
+        stack.push(1, 2, 3)
+        WORDS["id"](stack)
+        assert list(stack) == [1, 2, 3]
+
+        WORDS["nop"](stack)
+        assert list(stack) == [1, 2, 3]

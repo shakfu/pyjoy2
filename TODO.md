@@ -16,7 +16,7 @@ Prioritized enhancements to make pyjoy2 more valuable and usable.
 - [ ] `.undo` command to revert last operation
 
 ### Word Documentation
-- [ ] `.help word` to show docstring for any word
+- [x] `.help word` to show docstring for any word
 - [ ] `.words pattern` to filter word list (e.g., `.words map` shows map-related)
 - [ ] Include stack effect signatures in `.w` output
 
@@ -28,8 +28,8 @@ Prioritized enhancements to make pyjoy2 more valuable and usable.
 - [ ] `condlinrec` - conditional linear recursion
 
 ### Control Flow
-- [ ] `cond` - multi-way conditional (list of [test action] pairs)
-- [ ] `case` - pattern matching on values
+- [x] `cond` - multi-way conditional (list of [test action] pairs)
+- [x] `case` - pattern matching on values
 
 ### String Operations
 - [ ] `chars` - string to list of characters
@@ -110,16 +110,16 @@ Prioritized enhancements to make pyjoy2 more valuable and usable.
 
 - [ ] `show` - print without popping (already exists, but add `.show` alias)
 - [ ] `clr` alias for `clear`
-- [ ] `id` or `nop` - no-operation word
-- [ ] `dup2`, `pop2` - operate on pairs (already implemented)
-- [ ] `neg?`, `pos?`, `zero?` - numeric predicates
-- [ ] `empty?` alias for `null`
-- [ ] `inc`, `dec` aliases for `succ`, `pred`
+- [x] `id` or `nop` - no-operation word
+- [x] `dup2`, `pop2` - operate on pairs (already implemented)
+- [x] `neg?`, `pos?`, `zero?` - numeric predicates
+- [x] `empty?` alias for `null`
+- [x] `inc`, `dec` aliases for `succ`, `pred`
 
 ## Notes
 
 ### Design Principles
-1. **Python-first**: When in doubt, use Python semantics
+1. **Python-first**: When in doubt, use Python semantics and stick to the Python zen
 2. **Practical over pure**: Pragmatic features over theoretical purity
 3. **Interop is key**: Make it trivial to use Python libraries
 4. **Discoverable**: Good error messages and help system

@@ -478,6 +478,26 @@ class TestREPLEdgeCases:
         assert "PyJoy2" in captured.out
         assert ".def" in captured.out
 
+    def test_help_word_command(self, capsys):
+        repl = HybridREPL()
+        repl.process_line(".help dup")
+        captured = capsys.readouterr()
+        assert "dup" in captured.out
+        assert "Duplicate" in captured.out
+
+    def test_help_word_with_aliases(self, capsys):
+        repl = HybridREPL()
+        repl.process_line(".help inc")
+        captured = capsys.readouterr()
+        assert "inc" in captured.out
+        assert "succ" in captured.out  # alias
+
+    def test_help_unknown_word(self, capsys):
+        repl = HybridREPL()
+        repl.process_line(".help unknown_xyz")
+        captured = capsys.readouterr()
+        assert "Unknown word" in captured.out
+
     def test_python_variable_access(self):
         repl = HybridREPL()
         repl.process_line("!my_var = 42")

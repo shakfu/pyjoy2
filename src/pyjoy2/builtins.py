@@ -33,6 +33,15 @@ def _pop(s: Stack):
     s.pop()
 
 
+@define("id")
+def _id(s: Stack):
+    """-> : No operation (identity)."""
+    pass
+
+
+WORDS["nop"] = WORDS["id"]
+
+
 @define("swap")
 def _swap(s: Stack):
     """X Y -> Y X : Exchange top two items."""
@@ -245,6 +254,11 @@ def pred(x):
     return x - 1
 
 
+# Aliases
+WORDS["inc"] = WORDS["succ"]
+WORDS["dec"] = WORDS["pred"]
+
+
 @word
 def pow_(a, b):
     """N1 N2 -> N : Power."""
@@ -320,6 +334,36 @@ WORDS["<>"] = WORDS["ne"]
 def cmp(a, b):
     """X Y -> N : Compare (-1, 0, 1)."""
     return (a > b) - (a < b)
+
+
+# Numeric predicates
+@word
+def zero_p(x):
+    """N -> B : True if zero."""
+    return x == 0
+
+
+WORDS["zero?"] = WORDS["zero_p"]
+
+
+@word
+def pos_p(x):
+    """N -> B : True if positive."""
+    return x > 0
+
+
+WORDS["pos?"] = WORDS["pos_p"]
+WORDS["positive?"] = WORDS["pos_p"]
+
+
+@word
+def neg_p(x):
+    """N -> B : True if negative."""
+    return x < 0
+
+
+WORDS["neg?"] = WORDS["neg_p"]
+WORDS["negative?"] = WORDS["neg_p"]
 
 
 # ============================================================
@@ -445,6 +489,7 @@ def null(seq):
 
 
 WORDS["empty"] = WORDS["null"]
+WORDS["empty?"] = WORDS["null"]
 
 
 @word
@@ -665,6 +710,75 @@ def _when(s: Stack):
     cond = s.pop()
     if cond:
         execute(s, then_branch)
+
+
+@define("cond")
+def _cond(s: Stack):
+    """[[B1] [A1] [B2] [A2] ...] -> ... : Multi-way conditional.
+
+    Alternating [condition] [action] pairs. Evaluates conditions in order
+    until one is true, then executes its action.
+    Use [true] as the final condition for a default case.
+
+    Example: 5 [[0 <] ["negative"] [0 =] ["zero"] [true] ["positive"]] cond
+    """
+    clauses = s.pop()
+
+    if len(clauses) % 2 != 0:
+        raise ValueError("cond: need even number of elements (condition/action pairs)")
+
+    # Save stack state
+    saved = list(s)
+
+    for i in range(0, len(clauses), 2):
+        condition = clauses[i]
+        action = clauses[i + 1]
+
+        # Restore stack and test condition
+        s.clear()
+        s.extend(saved)
+        execute(s, condition)
+        result = s.pop()
+
+        if result:
+            # Restore stack and execute action
+            s.clear()
+            s.extend(saved)
+            execute(s, action)
+            return
+
+    # No condition matched - restore stack
+    s.clear()
+    s.extend(saved)
+
+
+@define("case")
+def _case(s: Stack):
+    """X [V1 [A1] V2 [A2] ...] -> ... : Pattern match on value.
+
+    Alternating value [action] pairs. Compares X against each value V
+    in order. When a match is found, pushes X back and executes the action.
+    If no match, X remains on stack unchanged.
+
+    Example: 2 [1 [pop "one"] 2 [pop "two"] 3 [pop "three"]] case
+    """
+    clauses = s.pop()
+    value = s.pop()
+
+    if len(clauses) % 2 != 0:
+        raise ValueError("case: need even number of elements (value/action pairs)")
+
+    for i in range(0, len(clauses), 2):
+        match_val = clauses[i]
+        action = clauses[i + 1]
+
+        if value == match_val:
+            s.push(value)
+            execute(s, action)
+            return
+
+    # No match - push value back
+    s.push(value)
 
 
 @define("unless")

@@ -9,12 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Control flow combinators:
+  - `cond` - multi-way conditional with alternating `[condition] [action]` pairs
+  - `case` - pattern matching with alternating `value [action]` pairs
+- Quick win words:
+  - `id`, `nop` - no-operation (identity)
+  - `inc`, `dec` - aliases for `succ`, `pred`
+  - `zero?`, `pos?`, `positive?`, `neg?`, `negative?` - numeric predicates
+  - `empty?` - alias for `null`
+- `.help word` REPL command - show docstring and aliases for any word
 - New list operations for quicksort support:
   - `small` - test if list has 0 or 1 elements
   - `partition` - split list by predicate: `[...] [P] -> [yes] [no]`
   - `enconcat` - concatenate with element in middle: `X [A] [B] -> [A X B...]`
 - Recursive word definitions now work correctly with `.def`
 - CLI script entry point: `uv run pyjoy2`
+
+### Changed
+
+- Optimized `@define` decorator: direct registration without wrapper function
+- Optimized `@word` decorator: specialized wrappers for 0-3 params (20% fewer calls, 23% faster)
 
 ### Fixed
 

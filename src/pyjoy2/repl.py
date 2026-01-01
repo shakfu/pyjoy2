@@ -6,7 +6,7 @@ Supports:
 - Python expressions via `expr` or $(expr)
 - Python statements via !stmt
 - Multi-line function definitions
-- Commands: .s, .c, .w, .def, .import
+- Commands: .s, .c, .w, .help, .def, .import, .load
 """
 
 from __future__ import annotations
@@ -147,6 +147,9 @@ class HybridREPL:
             return
         if stripped.startswith(".load "):
             self._load_file(stripped[6:].strip())
+            return
+        if stripped.startswith(".help "):
+            self._show_word_help(stripped[6:].strip())
             return
         if stripped == ".help":
             self._show_help()
@@ -396,6 +399,33 @@ class HybridREPL:
             else:
                 self.stack.push(item)
 
+    def _show_word_help(self, word_name: str) -> None:
+        """Show help for a specific word."""
+        if word_name not in WORDS:
+            # Try to find similar words
+            similar = [w for w in WORDS if word_name in w or w in word_name]
+            print(f"  Unknown word: {word_name}")
+            if similar:
+                print(f"  Did you mean: {', '.join(sorted(similar)[:5])}")
+            return
+
+        word_func = WORDS[word_name]
+        doc = getattr(word_func, "__doc__", None)
+
+        print(f"\n  {word_name}")
+        if doc:
+            # Parse stack effect from docstring (format: "X Y -> Z : Description")
+            doc = doc.strip()
+            print(f"    {doc}")
+        else:
+            print("    (no documentation)")
+
+        # Show aliases
+        aliases = [name for name, func in WORDS.items() if func is word_func and name != word_name]
+        if aliases:
+            print(f"    Aliases: {', '.join(sorted(aliases))}")
+        print()
+
     def _show_help(self) -> None:
         """Show help information."""
         print("""
@@ -415,6 +445,7 @@ Commands:
   .s            Show stack
   .c            Clear stack
   .w            List all words
+  .help W       Show help for word W
   .def N [...]  Define word N with body [...]
   .import M     Import Python module M
   .load F       Load Joy file F
