@@ -374,11 +374,11 @@ class TestIntegration:
         assert list(result) == [[1, 1, 2, 3, 4, 5, 6, 9]]
 
     def test_recursive_qsort_definition(self):
-        # Test recursive word definition with .def
+        # Test recursive word definition with .def using binrec (Joy-style)
         repl = HybridREPL()
         repl.process_line(
             ".def qsort [[small] [] "
-            "[uncons [over <] partition qsort swap qsort swap enconcat] ifte]"
+            "[uncons [over >] partition] [enconcat] binrec]"
         )
         repl.process_line("[3 1 4 1 5 9 2 6] qsort")
         assert list(repl.stack) == [[1, 1, 2, 3, 4, 5, 6, 9]]

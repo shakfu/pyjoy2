@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- New list operations for quicksort support:
+  - `small` - test if list has 0 or 1 elements
+  - `partition` - split list by predicate: `[...] [P] -> [yes] [no]`
+  - `enconcat` - concatenate with element in middle: `X [A] [B] -> [A X B...]`
+- Recursive word definitions now work correctly with `.def`
+- CLI script entry point: `uv run pyjoy2`
+
+### Fixed
+
+- `.def` now supports recursive definitions by using forward references
+
 ## [0.1.0] - 2026-01-01
 
 ### Added

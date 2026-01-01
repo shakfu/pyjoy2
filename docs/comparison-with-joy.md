@@ -341,18 +341,19 @@ DEFINE qsort ==
 [3 1 4 1 5] sort
 # => [1 1 3 4 5]
 
-# Method 2: Using Python's sorted directly
-[3 1 4 1 5] `sorted(S.pop())`
-# => [1 1 3 4 5]
-
-# Method 3: Pure Joy-style quicksort using ifte
+# Method 2: Joy-style quicksort using binrec
 .def qsort [
   [small] []
-  [uncons [over <] partition qsort swap qsort swap enconcat]
-  ifte
+  [uncons [over >] partition]
+  [enconcat]
+  binrec
 ]
 
 [3 1 4 1 5] qsort
+# => [1 1 3 4 5]
+
+# Method 3: Using Python's sorted directly
+[3 1 4 1 5] `sorted(S.pop())`
 # => [1 1 3 4 5]
 
 # Method 4: With custom comparator via Python
@@ -360,11 +361,45 @@ DEFINE qsort ==
 # => [5 4 3 1 1]
 ```
 
-**Notes on the pyjoy2 qsort:**
-- `small` tests if a list has 0 or 1 elements (base case)
-- `partition` splits a list by predicate: `[...] [P] -> [yes] [no]`
-- `enconcat` combines: `X [A] [B] -> [A X B...]`
-- The Joy version uses `binrec` with `split`; pyjoy2 uses `ifte` with `partition` for clarity
+**Comparing Joy and pyjoy2 qsort:**
+
+| Joy | pyjoy2 |
+|-----|--------|
+| `[>] split` | `[over >] partition` |
+
+The only syntactic difference is `[>] split` vs `[over >] partition`. Joy's `>`
+can implicitly access the pivot below it on the stack, while pyjoy2 needs `over`
+to copy the pivot up for comparison.
+
+**How it works:**
+
+The `partition` combinator (like Joy's `split`) preserves the stack context when
+testing the predicate. Here's the execution flow for `[3 1 4] qsort`:
+
+```
+[3 1 4]                    (* initial list *)
+uncons                     (* pivot=3, rest=[1 4] *)
+3 [1 4]                    (* stack after uncons *)
+[over >] partition         (* for each element: *)
+                           (*   push element: 3 1 *)
+                           (*   over: 3 1 3 *)
+                           (*   >: 3 (1>3=false) *)
+                           (*   pop result, pivot remains *)
+3 [4] [1]                  (* greater=[4], less=[1] *)
+                           (* binrec recurses on both, then: *)
+3 [4] [1]                  (* sorted sublists *)
+enconcat                   (* [1] ++ [3] ++ [4] = [1 3 4] *)
+```
+
+The key insight is that after `uncons`, the pivot sits on the stack. During
+`partition`, each element is pushed, compared with the pivot via `over >`,
+then the boolean result is popped - leaving the pivot intact for `enconcat`.
+
+**Structure breakdown:**
+- `[small]` - base case test (list has 0 or 1 elements)
+- `[]` - base case action (do nothing, list is already sorted)
+- `[uncons [over >] partition]` - extract pivot, partition rest into greater/less
+- `[enconcat]` - recombine: `sorted_less ++ [pivot] ++ sorted_greater`
 
 ## Migration Tips
 

@@ -1,6 +1,6 @@
 # pyjoy2
 
-A Pythonic reimagining of the Joy programming language.
+A Pythonic reimagining of the [Joy programming language](https://hypercubed.github.io/joy/joy.html) by Manfred von Thun.
 
 PyJoy2 is a concatenative, stack-based functional language that seamlessly integrates with Python. Any Python object can live on the stack, and you can freely mix Joy-style functional programming with Python expressions.
 
@@ -8,7 +8,7 @@ PyJoy2 is a concatenative, stack-based functional language that seamlessly integ
 
 ```sh
 # Clone and install
-git clone <repository-url>
+git clone https://github.com/shakfu/pyjoy2.git
 cd pyjoy2
 uv sync
 ```
@@ -19,13 +19,16 @@ uv sync
 
 ```sh
 # Start the interactive REPL
-python -m pyjoy2
+uv run pyjoy2
 
 # Evaluate an expression
-python -m pyjoy2 -e "3 4 + dup *"
+uv run pyjoy2 -e "3 4 + dup *"
 
 # Run a file
-python -m pyjoy2 program.joy
+uv run pyjoy2 program.joy
+
+# Alternative: use python -m
+python -m pyjoy2
 ```
 
 ### As a Python Module
@@ -125,12 +128,15 @@ not  and  or  xor          # Logical operations
 ### List Operations
 
 ```
-first    # [X ...] -> X           First element
-rest     # [X ...] -> [...]       All but first
-cons     # X [...] -> [X ...]     Prepend
-concat   # [...] [...] -> [...]   Concatenate
-size     # [...] -> N             Length
-reverse  # [...] -> [...]         Reverse
+first     # [X ...] -> X             First element
+rest      # [X ...] -> [...]         All but first
+cons      # X [...] -> [X ...]       Prepend
+concat    # [...] [...] -> [...]     Concatenate
+size      # [...] -> N               Length
+reverse   # [...] -> [...]           Reverse
+small     # [...] -> B               True if 0 or 1 elements
+partition # [...] [P] -> [...] [...] Split by predicate
+enconcat  # X [A] [B] -> [A X B...]  Concatenate with X in middle
 ```
 
 ### Combinators
@@ -164,10 +170,16 @@ primrec  # N [I] [C] -> ...           Primitive recursion
 # Result: 120
 ```
 
-### Quicksort-style operations
+### Quicksort
 
 ```
+# Using built-in sort
 [3 1 4 1 5 9 2 6] sort
+# Result: [1, 1, 2, 3, 4, 5, 6, 9]
+
+# Joy-style quicksort using binrec
+.def qsort [[small] [] [uncons [over >] partition] [enconcat] binrec]
+[3 1 4 1 5 9 2 6] qsort
 # Result: [1, 1, 2, 3, 4, 5, 6, 9]
 ```
 
